@@ -429,6 +429,10 @@ public class Controller implements Initializable {
                         pointListMap.get(cc.getFrom()).getyPosition() + Point.POINT_HEIGHT / 2,
                         pointListMap.get(cc.getTo()).getxPosition() + Point.POINT_WIDTH / 2,
                         pointListMap.get(cc.getTo()).getyPosition() + Point.POINT_HEIGHT / 2);
+                gc.setFill(Color.GREY);
+                gc.fillText(String.valueOf(cc.getDistance()),(pointListMap.get(cc.getFrom()).getxPosition()+ pointListMap.get(cc.getTo()).getxPosition())/2
+                        ,(pointListMap.get(cc.getFrom()).getyPosition() + pointListMap.get(cc.getTo()).getyPosition())/2);
+                gc.setFill(Color.BLACK);
             }
         }
 

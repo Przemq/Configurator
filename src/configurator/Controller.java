@@ -81,6 +81,8 @@ public class Controller implements Initializable {
     private LinkedList<String> clickedPoints = new LinkedList<>();
     private boolean canColorPoints = false;
     private HashMap<Integer, String> backgroundSourcePath;
+    private float xScale = 0.88333f;
+    private float yScale = 0.60443f;
 
 
     @Override
@@ -103,15 +105,18 @@ public class Controller implements Initializable {
             public void handle(MouseEvent event) {
                 if (event.getButton() == MouseButton.PRIMARY) {
                     drawPoint(event);
+                    System.out.println("Rysuje punkt   "  + event.getX() + ":" + event.getY());
                 }
                 if (event.getButton() == MouseButton.SECONDARY) {
                     canColorPoints = true;
                     detectClickedPoint(event);
                     addPointsToQueue(closestPoint);
+                    System.out.println("Dodaje połączenie");
                 }
                 if (event.getButton() == MouseButton.MIDDLE) {
                     detectClickedPoint(event);
                     deleteClickedPoint(closestPoint);
+                    System.out.println("usuwam punkt");
                 }
             }
         });
@@ -372,9 +377,10 @@ public class Controller implements Initializable {
     }
 
     private void addConnection() {
-        if (!Objects.equals(from, to)) {
+        if (!Objects.equals(from, to) && !from.equals(pointToDeleteConnection) && !to.equals(pointToDeleteConnection) ) {
+            System.out.println(from + ":" + to);
 
-            Connection newConnection = new Connection(pointListMap.get(from).getName(), pointListMap.get(to).getName(), calculateDistance());
+            Connection newConnection = new Connection(pointListMap.get(from).getName(), pointListMap.get(to).getName(),pointListMap.get(from).getId(),pointListMap.get(to).getId(), calculateDistance());
             if (pointListMap.get(from).getFloor() != pointListMap.get(to).getFloor()) {
                 showInterFloorConnectionInfo = true;
             } else {
@@ -386,6 +392,7 @@ public class Controller implements Initializable {
                 for (Connection c : connections) {
                     if ((Objects.equals(c.getFrom(), newConnection.getFrom()) && Objects.equals(c.getTo(), newConnection.getTo()))
                             || (Objects.equals(c.getFrom(), newConnection.getTo()) && Objects.equals(c.getTo(), newConnection.getFrom()))) {
+                        refresh();
                         showDialogMessage("That connection already exist!", "Info", Alert.AlertType.INFORMATION);
                         return;
                     }
@@ -406,7 +413,8 @@ public class Controller implements Initializable {
                 refresh();
             }
         } else {
-            showDialogMessage("Source and destination cant't br the same points", "Warning", Alert.AlertType.WARNING);
+            if(pointListMap.size()>1)
+            showDialogMessage("Source and destination cant't be the same points", "Warning", Alert.AlertType.WARNING);
         }
     }
 
@@ -493,6 +501,7 @@ public class Controller implements Initializable {
             Connection con = it.next();
             if (con.getTo().equals(pointToDeleteConnection) || con.getFrom().equals(pointToDeleteConnection)) {
                 it.remove();
+                System.out.println("usuwam połączenia po usunięciu punktu");
             }
         }
 
@@ -505,6 +514,7 @@ public class Controller implements Initializable {
                     || (con.getTo().equals(toConnectionDel) && con.getFrom().equals(fromConnectionDel)))) {
                 canDeleteConnection = true;
                 it.remove();
+                System.out.println("usuwam konkretne połaczenie");
                 refresh();
             } else {
                 System.out.println("Nie ma takiego połączenia");
@@ -566,7 +576,7 @@ public class Controller implements Initializable {
             refresh();
         }
         if (clickedPoints.size() > 1) {
-            System.out.println(clickedPoints.get(0) + " : " + clickedPoints.get(1));
+            //System.out.println(clickedPoints.get(0) + " : " + clickedPoints.get(1));
             to = clickedPoints.get(1);
             from = clickedPoints.get(0);
             addConnection();
@@ -595,7 +605,7 @@ public class Controller implements Initializable {
         }
     }
 
-    private String createJSONObjectToSave(LinkedHashMap<String, Point> pointMap, List<Connection> connectionsList){
+    private String createJSONObjectToSave(HashMap<String, Point> pointMap, List<Connection> connectionsList){
         JSONObject data = new JSONObject();
         JSONArray pointsArray = new JSONArray();
         JSONArray connectionsArray = new JSONArray();
@@ -604,8 +614,8 @@ public class Controller implements Initializable {
             try {
                 point.put("id",p.getId());
                 point.put("name", p.getName());
-                point.put("xPosition",p.getxPosition());
-                point.put("yPosition", p.getyPosition());
+                point.put("xPosition",p.getxPosition()/xScale);
+                point.put("yPosition", p.getyPosition()/yScale);
                 point.put("floor",p.getFloor());
                 point.put("isMiddleSource", p.isMiddleSource());
                 pointsArray.put(point);
@@ -621,8 +631,8 @@ public class Controller implements Initializable {
         for (Connection c : connectionsList){
             JSONObject connection = new JSONObject();
             try {
-                connection.put("from",c.getFrom());
-                connection.put("to", c.getTo());
+                connection.put("from",c.getSource());
+                connection.put("to", c.getDestination());
                 connection.put("distance", c.getDistance());
                 connectionsArray.put(connection);
             } catch (JSONException e) {

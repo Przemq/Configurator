@@ -6,11 +6,15 @@ package domain;
 public class Connection {
     private String from;
     private String to;
+    private int source;
+    private int destination;
     private int distance;
 
-    public Connection(String from, String to, int distance) {
+    public Connection(String from, String to,int source,int destination, int distance) {
         this.from = from;
         this.to = to;
+        this.source = source;
+        this.destination = destination;
         this.distance = distance;
     }
 
@@ -37,4 +41,20 @@ public class Connection {
     public void setDistance(int distance) {
         this.distance = distance;
     }
+    public int getSource() {
+        return source;
+    }
+
+    public void setSource(int source) {
+        this.source = source;
+    }
+
+    public int getDestination() {
+        return destination;
+    }
+
+    public void setDestination(int destination) {
+        this.destination = destination;
+    }
+
 }

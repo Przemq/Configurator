@@ -59,10 +59,11 @@ public class Controller implements Initializable {
 
     private List<Connection> connections;
     private int id = 0;
+    private int idName = 0;
     private int floor = 1;
     private int maxFloor = 0;
     private int minFloor = 0;
-    private boolean allowAddPoints = true; // w produkcji ma być false
+    private boolean allowAddPoints = false; // w produkcji ma być false
     private String from;
     private String to;
     private String pointToDelete;
@@ -83,6 +84,8 @@ public class Controller implements Initializable {
     private HashMap<Integer, String> backgroundSourcePath;
     private float xScale = 0.88333f;
     private float yScale = 0.60443f;
+    private int idToStartDecrement;
+    private boolean canDecrementMainId = false;
 
 
     @Override
@@ -105,7 +108,6 @@ public class Controller implements Initializable {
             public void handle(MouseEvent event) {
                 if (event.getButton() == MouseButton.PRIMARY) {
                     drawPoint(event);
-                    System.out.println("Rysuje punkt   "  + event.getX() + ":" + event.getY());
                 }
                 if (event.getButton() == MouseButton.SECONDARY) {
                     canColorPoints = true;
@@ -116,7 +118,8 @@ public class Controller implements Initializable {
                 if (event.getButton() == MouseButton.MIDDLE) {
                     detectClickedPoint(event);
                     deleteClickedPoint(closestPoint);
-                    System.out.println("usuwam punkt");
+                    decrementID();
+                    for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
                 }
             }
         });
@@ -197,6 +200,7 @@ public class Controller implements Initializable {
             @Override
             public void handle(ActionEvent event) {
                 addFloor();
+                allowAddPoints = false;
             }
         });
 
@@ -245,6 +249,11 @@ public class Controller implements Initializable {
             @Override
             public void handle(ActionEvent event) {
                 deletePoint();
+                for (Point pkt : pointListMap.values()){
+                    if(pkt.getId() >= idToStartDecrement){
+                        pkt.setId(pkt.getId()-1);
+                    }
+                }
             }
         });
 
@@ -290,7 +299,7 @@ public class Controller implements Initializable {
     private void drawPoint(MouseEvent event) {
         if (event.getButton() == MouseButton.PRIMARY) {
             if (allowAddPoints) {
-                Point newPoint = new Point(id, pointPrefix.getText() + id, (float) event.getX(), (float) event.getY(), Integer.valueOf(floorEditText.getText()), false);
+                Point newPoint = new Point(id, pointPrefix.getText() + idName, (float) event.getX(), (float) event.getY(), Integer.valueOf(floorEditText.getText()), false);
 
                 if (!pointListMap.isEmpty()) {
                     for (Point p : pointListMap.values()) {
@@ -303,6 +312,10 @@ public class Controller implements Initializable {
                 pointListMap.put(newPoint.getName(), newPoint);
                 refresh();
                 id++;
+                idName++;
+                System.out.println("");
+                for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
+                System.out.println("");
             } else
                 showDialogMessage("Add background image first!", "No background", Alert.AlertType.INFORMATION);
 
@@ -435,6 +448,7 @@ public class Controller implements Initializable {
                 gc.setFill(Color.BLACK);
             }
         }
+        for (Connection c : connections) System.out.println(c.getFrom() + " : " + c.getTo());
 
 
         for (Point p : pointListMap.values()) {
@@ -478,14 +492,15 @@ public class Controller implements Initializable {
     private void deletePoint() {
         for (Point p : pointListMap.values()) {
             if (p.getName().equals(pointToDelete)) {
+                idToStartDecrement = p.getId() + 1;
                 pointListMap.remove(pointToDelete);
+                decrementID();
                 pointToDeleteConnection = p.getName();
                 deleteConnectionsAfterDeletePoint();
                 refresh();
                 break;
             }
         }
-
     }
 
     private int calculateDistance() {
@@ -561,6 +576,7 @@ public class Controller implements Initializable {
             if (p.getName().equals(pointName)) {
                 pointListMap.remove(pointName);
                 pointToDeleteConnection = p.getName();
+                idToStartDecrement = p.getId() + 1;
                 deleteConnectionsAfterDeletePoint();
                 refresh();
                 System.out.println("");
@@ -650,6 +666,19 @@ public class Controller implements Initializable {
         }
 
         return data.toString();
+    }
+
+    private void decrementID(){
+        for (Point pkt : pointListMap.values()){
+            if(pkt.getId() >= idToStartDecrement){
+                pkt.setId(pkt.getId()-1);
+            }
+        }
+        id --;
+        System.out.println("");
+        for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
+        System.out.println("");
+
     }
 
 }

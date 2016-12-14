@@ -25,6 +25,7 @@ import javafx.stage.Stage;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.io.*;
 import java.net.URL;
 import java.util.*;
@@ -245,9 +246,9 @@ public class Controller implements Initializable {
             @Override
             public void handle(ActionEvent event) {
                 deletePoint();
-                for (Point pkt : pointListMap.values()){
-                    if(pkt.getId() >= idToStartDecrement){
-                        pkt.setId(pkt.getId()-1);
+                for (Point pkt : pointListMap.values()) {
+                    if (pkt.getId() >= idToStartDecrement) {
+                        pkt.setId(pkt.getId() - 1);
                     }
                 }
             }
@@ -256,16 +257,15 @@ public class Controller implements Initializable {
         buttonSaveAll.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                saveFileDialog();
-                showDialogMessage("File saved","Success", Alert.AlertType.INFORMATION);
+                checkIfAddedConnectionBetwenFloors();
             }
         });
 
         buttonEditConf.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-               selectConfigurationFile();
-               id = pointListMap.size();
+                selectConfigurationFile();
+                id = pointListMap.size();
 
             }
         });
@@ -285,7 +285,7 @@ public class Controller implements Initializable {
             setCanvasBackground(filePath);
             if (backgroundSourcePath.containsKey(floor)) {
                 System.out.println("Coś tu już mam zapisane");
-                backgroundSourcePath.replace(floor,filePath);
+                backgroundSourcePath.replace(floor, filePath);
             } else {
                 backgroundSourcePath.put(floor, filePath);
             }
@@ -392,10 +392,10 @@ public class Controller implements Initializable {
     }
 
     private void addConnection() {
-        if (!Objects.equals(from, to) && !from.equals(pointToDeleteConnection) && !to.equals(pointToDeleteConnection) ) {
-           // System.out.println(from + ":" + to);
+        if (!Objects.equals(from, to) && !from.equals(pointToDeleteConnection) && !to.equals(pointToDeleteConnection)) {
+            // System.out.println(from + ":" + to);
 
-            Connection newConnection = new Connection(pointListMap.get(from).getName(), pointListMap.get(to).getName(),pointListMap.get(from).getId(),pointListMap.get(to).getId(), calculateDistance());
+            Connection newConnection = new Connection(pointListMap.get(from).getName(), pointListMap.get(to).getName(), pointListMap.get(from).getId(), pointListMap.get(to).getId(), calculateDistance());
             if (pointListMap.get(from).getFloor() != pointListMap.get(to).getFloor()) {
                 showInterFloorConnectionInfo = true;
             } else {
@@ -428,8 +428,8 @@ public class Controller implements Initializable {
                 refresh();
             }
         } else {
-            if(pointListMap.size()>1)
-            showDialogMessage("Source and destination cant't be the same points", "Warning", Alert.AlertType.WARNING);
+            if (pointListMap.size() > 1)
+                showDialogMessage("Source and destination cant't be the same points", "Warning", Alert.AlertType.WARNING);
         }
     }
 
@@ -445,8 +445,8 @@ public class Controller implements Initializable {
                         pointListMap.get(cc.getTo()).getxPosition() + Point.POINT_WIDTH / 2,
                         pointListMap.get(cc.getTo()).getyPosition() + Point.POINT_HEIGHT / 2);
                 gc.setFill(Color.GREY);
-                gc.fillText(String.valueOf(cc.getDistance()),(pointListMap.get(cc.getFrom()).getxPosition()+ pointListMap.get(cc.getTo()).getxPosition())/2
-                        ,(pointListMap.get(cc.getFrom()).getyPosition() + pointListMap.get(cc.getTo()).getyPosition())/2);
+                gc.fillText(String.valueOf(cc.getDistance()), (pointListMap.get(cc.getFrom()).getxPosition() + pointListMap.get(cc.getTo()).getxPosition()) / 2
+                        , (pointListMap.get(cc.getFrom()).getyPosition() + pointListMap.get(cc.getTo()).getyPosition()) / 2);
                 gc.setFill(Color.BLACK);
             }
         }
@@ -458,7 +458,7 @@ public class Controller implements Initializable {
                 if (p.isMiddleSource()) {
                     gc.setStroke(Color.YELLOWGREEN);
                     gc.setFill(Color.YELLOWGREEN);
-                } else if(!p.isMiddleSource()){
+                } else if (!p.isMiddleSource()) {
                     gc.setStroke(Color.BLACK);
                     gc.setFill(Color.BLACK);
                 }
@@ -606,18 +606,18 @@ public class Controller implements Initializable {
         }
     }
 
-    private String createJSONObjectToSave(HashMap<String, Point> pointMap, List<Connection> connectionsList){
+    private String createJSONObjectToSave(HashMap<String, Point> pointMap, List<Connection> connectionsList) {
         JSONObject data = new JSONObject();
         JSONArray pointsArray = new JSONArray();
         JSONArray connectionsArray = new JSONArray();
-        for(Point p : pointMap.values()){
+        for (Point p : pointMap.values()) {
             JSONObject point = new JSONObject();
             try {
-                point.put("id",p.getId());
+                point.put("id", p.getId());
                 point.put("name", p.getName());
-                point.put("xPosition",p.getxPosition()/xScale);
-                point.put("yPosition", p.getyPosition()/yScale);
-                point.put("floor",p.getFloor());
+                point.put("xPosition", p.getxPosition() / xScale);
+                point.put("yPosition", p.getyPosition() / yScale);
+                point.put("floor", p.getFloor());
                 point.put("isMiddleSource", p.isMiddleSource());
                 pointsArray.put(point);
             } catch (JSONException e) {
@@ -625,28 +625,28 @@ public class Controller implements Initializable {
             }
         }
         try {
-            data.put("pointsArray",pointsArray);
+            data.put("pointsArray", pointsArray);
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        for (Connection c : connectionsList){
+        for (Connection c : connectionsList) {
             JSONObject connection = new JSONObject();
             try {
-                connection.put("source",c.getSource());
+                connection.put("source", c.getSource());
                 connection.put("destination", c.getDestination());
                 connection.put("distance", c.getDistance());
-                connection.put("from",c.getFrom());
-                connection.put("to",c.getTo());
+                connection.put("from", c.getFrom());
+                connection.put("to", c.getTo());
                 connectionsArray.put(connection);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
         try {
-            data.put("connectionsArray",connectionsArray);
+            data.put("connectionsArray", connectionsArray);
             JSONObject metaData = new JSONObject();
-            metaData.put("idName",idName);
-            data.put("metaData",metaData);
+            metaData.put("idName", idName);
+            data.put("metaData", metaData);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -654,13 +654,13 @@ public class Controller implements Initializable {
         return data.toString();
     }
 
-    private void decrementID(){
-        for (Point pkt : pointListMap.values()){
-            if(pkt.getId() >= idToStartDecrement){
-                pkt.setId(pkt.getId()-1);
+    private void decrementID() {
+        for (Point pkt : pointListMap.values()) {
+            if (pkt.getId() >= idToStartDecrement) {
+                pkt.setId(pkt.getId() - 1);
             }
         }
-        id --;
+        id--;
         System.out.println("");
         for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
         System.out.println("");
@@ -678,44 +678,42 @@ public class Controller implements Initializable {
                 text.append(line);
             }
             br.close();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
-        return  text.toString();
+        return text.toString();
     }
 
-    private void parseConfigurationFIle(String json){
+    private void parseConfigurationFIle(String json) {
         try {
             System.out.println(json);
             JSONObject receivedData = new JSONObject(json);
             JSONObject metaData = receivedData.getJSONObject("metaData");
             idName = metaData.getInt("idName");
-            JSONArray pointsArray =  receivedData.getJSONArray("pointsArray");
-            JSONArray connectionsArray =  receivedData.getJSONArray("connectionsArray");
-            for(int i = 0; i < pointsArray.length(); i ++){
+            JSONArray pointsArray = receivedData.getJSONArray("pointsArray");
+            JSONArray connectionsArray = receivedData.getJSONArray("connectionsArray");
+            for (int i = 0; i < pointsArray.length(); i++) {
                 JSONObject p = pointsArray.getJSONObject(i);
                 int id = p.getInt("id");
                 String name = p.getString("name");
-                float xPosition = (float)p.getDouble("xPosition");
-                float yPosition = (float)p.getDouble("yPosition");
+                float xPosition = (float) p.getDouble("xPosition");
+                float yPosition = (float) p.getDouble("yPosition");
                 int floor = p.getInt("floor");
                 boolean isMiddleSource = p.getBoolean("isMiddleSource");
-                Point tmpPoint = new Point(id,name,xPosition*xScale,yPosition*yScale,floor,isMiddleSource);
-                pointListMap.put(tmpPoint.getName(),tmpPoint);
+                Point tmpPoint = new Point(id, name, xPosition * xScale, yPosition * yScale, floor, isMiddleSource);
+                pointListMap.put(tmpPoint.getName(), tmpPoint);
                 System.out.println("id: " + id + "  name: " + name + "  x: " + xPosition + "  y: " + yPosition + "  floor: " + floor + "  isMiddleSource: " + isMiddleSource);
             }
-            for (int i = 0; i < connectionsArray.length(); i ++){
+            for (int i = 0; i < connectionsArray.length(); i++) {
                 JSONObject c = connectionsArray.getJSONObject(i);
                 int source = c.getInt("source");
                 int destination = c.getInt("destination");
                 int distance = c.getInt("distance");
                 String from = c.getString("from");
                 String to = c.getString("to");
-                Connection tempConnection = new Connection(from,to,source,destination,distance);
+                Connection tempConnection = new Connection(from, to, source, destination, distance);
                 connections.add(tempConnection);
             }
-
 
 
         } catch (JSONException e) {
@@ -738,7 +736,7 @@ public class Controller implements Initializable {
         }
     }
 
-    private void saveFileDialog(){
+    private void saveFileDialog() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select background image");
         fileChooser.getExtensionFilters().addAll(
@@ -746,21 +744,39 @@ public class Controller implements Initializable {
 
         File selectedFile = fileChooser.showSaveDialog(new Stage());
         if (selectedFile != null) {
-           saveFile(createJSONObjectToSave(pointListMap,connections),selectedFile);
-
+            saveFile(createJSONObjectToSave(pointListMap, connections), selectedFile);
+            showDialogMessage("File saved", "Success", Alert.AlertType.INFORMATION);
         }
     }
 
-    private void saveFile(String content, File file){
+    private void saveFile(String content, File file) {
         try {
             FileWriter fileWriter = null;
             fileWriter = new FileWriter(file);
             fileWriter.write(content);
             fileWriter.close();
-        } catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    
+
+    private void checkIfAddedConnectionBetwenFloors() {
+        boolean canSave = false;
+        for (Connection c : connections) {
+            if (pointListMap.get(c.getFrom()).getFloor() != pointListMap.get(c.getTo()).getFloor()) {
+                canSave = true;
+                break;
+            } else {
+                canSave = false;
+            }
+        }
+        if (canSave) {
+            saveFileDialog();
+        }else {
+            showDialogMessage("You should add connection between floor","No connection between floors", Alert.AlertType.INFORMATION);
+
+        }
+
+    }
 
 }

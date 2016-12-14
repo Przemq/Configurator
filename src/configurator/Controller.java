@@ -53,9 +53,9 @@ public class Controller implements Initializable {
     public Button buttonSaveDetails;
     public Button buttonAddFloor;
     public Button buttonSaveAll;
-    public Button buttonSaveFloor;
     public Button buttonFloorDOWN;
     public Button buttonFloorUP;
+    public Button buttonEditConf;
 
     private List<Connection> connections;
     private int id = 0;
@@ -63,7 +63,7 @@ public class Controller implements Initializable {
     private int floor = 1;
     private int maxFloor = 0;
     private int minFloor = 0;
-    private boolean allowAddPoints = false; // w produkcji ma być false
+    private boolean allowAddPoints = true; // w produkcji ma być false
     private String from;
     private String to;
     private String pointToDelete;
@@ -85,8 +85,6 @@ public class Controller implements Initializable {
     private float xScale = 0.88333f;
     private float yScale = 0.60443f;
     private int idToStartDecrement;
-    private boolean canDecrementMainId = false;
-
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -113,7 +111,6 @@ public class Controller implements Initializable {
                     canColorPoints = true;
                     detectClickedPoint(event);
                     addPointsToQueue(closestPoint);
-                    System.out.println("Dodaje połączenie");
                 }
                 if (event.getButton() == MouseButton.MIDDLE) {
                     detectClickedPoint(event);
@@ -169,7 +166,6 @@ public class Controller implements Initializable {
                 if (newValue != null) {
                     pointToDelete = newValue.toString();
                 }
-                //  System.out.println(deletedPoint);
             }
         });
 
@@ -260,8 +256,16 @@ public class Controller implements Initializable {
         buttonSaveAll.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                for (String s : backgroundSourcePath.values()) System.out.println(s);
-                saveDataToFile("testowyJSON", createJSONObjectToSave(pointListMap,connections));
+                saveFileDialog();
+                showDialogMessage("File saved","Success", Alert.AlertType.INFORMATION);
+            }
+        });
+
+        buttonEditConf.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+               selectConfigurationFile();
+               id = pointListMap.size();
 
             }
         });
@@ -364,8 +368,7 @@ public class Controller implements Initializable {
                         canModify = true;
                     }
                 }
-            } //else
-            //System.out.println("Nic ne rób");
+            }
         }
         if (canModify) {
 
@@ -382,16 +385,15 @@ public class Controller implements Initializable {
             pointListMap.put(tmp.getName(), tmp);
 
 
-            // for (Point p : pointListMap.values()) System.out.println(p.getName() + " : " + p.isMiddleSource());
             refresh();
             return;
         }
-        System.out.println("można? " + canModify);
+
     }
 
     private void addConnection() {
         if (!Objects.equals(from, to) && !from.equals(pointToDeleteConnection) && !to.equals(pointToDeleteConnection) ) {
-            System.out.println(from + ":" + to);
+           // System.out.println(from + ":" + to);
 
             Connection newConnection = new Connection(pointListMap.get(from).getName(), pointListMap.get(to).getName(),pointListMap.get(from).getId(),pointListMap.get(to).getId(), calculateDistance());
             if (pointListMap.get(from).getFloor() != pointListMap.get(to).getFloor()) {
@@ -604,27 +606,6 @@ public class Controller implements Initializable {
         }
     }
 
-    private void saveDataToFile(String fileName, String content) {
-        File file = new File("d:/"+fileName+".txt");
-
-        try (FileOutputStream fop = new FileOutputStream(file)) {
-
-            if (!file.exists()) {
-                file.createNewFile();
-            }
-            byte[] contentInBytes = content.getBytes();
-
-            fop.write(contentInBytes);
-            fop.flush();
-            fop.close();
-
-            System.out.println("Done");
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     private String createJSONObjectToSave(HashMap<String, Point> pointMap, List<Connection> connectionsList){
         JSONObject data = new JSONObject();
         JSONArray pointsArray = new JSONArray();
@@ -651,9 +632,11 @@ public class Controller implements Initializable {
         for (Connection c : connectionsList){
             JSONObject connection = new JSONObject();
             try {
-                connection.put("from",c.getSource());
-                connection.put("to", c.getDestination());
+                connection.put("source",c.getSource());
+                connection.put("destination", c.getDestination());
                 connection.put("distance", c.getDistance());
+                connection.put("from",c.getFrom());
+                connection.put("to",c.getTo());
                 connectionsArray.put(connection);
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -661,6 +644,9 @@ public class Controller implements Initializable {
         }
         try {
             data.put("connectionsArray",connectionsArray);
+            JSONObject metaData = new JSONObject();
+            metaData.put("idName",idName);
+            data.put("metaData",metaData);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -680,5 +666,101 @@ public class Controller implements Initializable {
         System.out.println("");
 
     }
+
+    private String readJSONFromFIle(String fileName) {
+        File file = new File(fileName);
+        StringBuilder text = new StringBuilder();
+
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+            }
+            br.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return  text.toString();
+    }
+
+    private void parseConfigurationFIle(String json){
+        try {
+            System.out.println(json);
+            JSONObject receivedData = new JSONObject(json);
+            JSONObject metaData = receivedData.getJSONObject("metaData");
+            idName = metaData.getInt("idName");
+            JSONArray pointsArray =  receivedData.getJSONArray("pointsArray");
+            JSONArray connectionsArray =  receivedData.getJSONArray("connectionsArray");
+            for(int i = 0; i < pointsArray.length(); i ++){
+                JSONObject p = pointsArray.getJSONObject(i);
+                int id = p.getInt("id");
+                String name = p.getString("name");
+                float xPosition = (float)p.getDouble("xPosition");
+                float yPosition = (float)p.getDouble("yPosition");
+                int floor = p.getInt("floor");
+                boolean isMiddleSource = p.getBoolean("isMiddleSource");
+                Point tmpPoint = new Point(id,name,xPosition*xScale,yPosition*yScale,floor,isMiddleSource);
+                pointListMap.put(tmpPoint.getName(),tmpPoint);
+                System.out.println("id: " + id + "  name: " + name + "  x: " + xPosition + "  y: " + yPosition + "  floor: " + floor + "  isMiddleSource: " + isMiddleSource);
+            }
+            for (int i = 0; i < connectionsArray.length(); i ++){
+                JSONObject c = connectionsArray.getJSONObject(i);
+                int source = c.getInt("source");
+                int destination = c.getInt("destination");
+                int distance = c.getInt("distance");
+                String from = c.getString("from");
+                String to = c.getString("to");
+                Connection tempConnection = new Connection(from,to,source,destination,distance);
+                connections.add(tempConnection);
+            }
+
+
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void selectConfigurationFile() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select configuration file");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Text Files", "*.txt"));
+
+        File selectedFile = fileChooser.showOpenDialog(new Stage());
+        if (selectedFile != null) {
+            pathToBackgroundFile.setText(selectedFile.toURI().toString());
+            String filePath = selectedFile.toString();
+            parseConfigurationFIle(readJSONFromFIle(filePath));
+            refresh();
+        }
+    }
+
+    private void saveFileDialog(){
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select background image");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Text Files", "*.txt"));
+
+        File selectedFile = fileChooser.showSaveDialog(new Stage());
+        if (selectedFile != null) {
+           saveFile(createJSONObjectToSave(pointListMap,connections),selectedFile);
+
+        }
+    }
+
+    private void saveFile(String content, File file){
+        try {
+            FileWriter fileWriter = null;
+            fileWriter = new FileWriter(file);
+            fileWriter.write(content);
+            fileWriter.close();
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+    
 
 }

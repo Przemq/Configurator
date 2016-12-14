@@ -56,5 +56,4 @@ public class Connection {
     public void setDestination(int destination) {
         this.destination = destination;
     }
-
 }

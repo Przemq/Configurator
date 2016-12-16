@@ -83,9 +83,10 @@ public class Controller implements Initializable {
     private LinkedList<String> clickedPoints = new LinkedList<>();
     private boolean canColorPoints = false;
     private HashMap<Integer, String> backgroundSourcePath;
-    private float xScale = 0.88333f;
-    private float yScale = 0.60443f;
+    private float xScale = 0.88333333333f;
+    private float yScale = 0.60443037974f;
     private int idToStartDecrement;
+    private int totalFloorsNumber = 1;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -116,7 +117,8 @@ public class Controller implements Initializable {
                 if (event.getButton() == MouseButton.MIDDLE) {
                     detectClickedPoint(event);
                     deleteClickedPoint(closestPoint);
-                    decrementID();
+                    decrementID(idToStartDecrement);
+                    //decrementConnectionsID(idToStartDecrement);
                     for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
                 }
             }
@@ -257,7 +259,8 @@ public class Controller implements Initializable {
         buttonSaveAll.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                checkIfAddedConnectionBetwenFloors();
+                refreshConnectionsID();
+                checkIfAddedConnectionBetweenFloors();
             }
         });
 
@@ -364,7 +367,6 @@ public class Controller implements Initializable {
                         canModify = false;
                         return;
                     } else {
-                        //System.out.println("nie znalazłem tej nazwy w liście puktów");
                         canModify = true;
                     }
                 }
@@ -380,13 +382,13 @@ public class Controller implements Initializable {
                 if (c.getFrom().equals(tmp.getName()))
                     c.setFrom(pointDetailName.getText());
             }
+            //decrementID(tmp.getId()+1);
+           // decrementConnectionsID(tmp.getId()+1);
             tmp.setName(pointDetailName.getText());
             tmp.setMiddleSource(isMiddleSource);
             pointListMap.put(tmp.getName(), tmp);
-
-
             refresh();
-            return;
+
         }
 
     }
@@ -440,10 +442,10 @@ public class Controller implements Initializable {
         for (Connection cc : connections) {
             if (pointListMap.get(cc.getFrom()).getFloor() == floor && pointListMap.get(cc.getTo()).getFloor() == floor) {
                 gc.strokeLine(
-                        pointListMap.get(cc.getFrom()).getxPosition() + Point.POINT_WIDTH / 2,
-                        pointListMap.get(cc.getFrom()).getyPosition() + Point.POINT_HEIGHT / 2,
-                        pointListMap.get(cc.getTo()).getxPosition() + Point.POINT_WIDTH / 2,
-                        pointListMap.get(cc.getTo()).getyPosition() + Point.POINT_HEIGHT / 2);
+                        pointListMap.get(cc.getFrom()).getxPosition(),
+                        pointListMap.get(cc.getFrom()).getyPosition(),
+                        pointListMap.get(cc.getTo()).getxPosition(),
+                        pointListMap.get(cc.getTo()).getyPosition());
                 gc.setFill(Color.GREY);
                 gc.fillText(String.valueOf(cc.getDistance()), (pointListMap.get(cc.getFrom()).getxPosition() + pointListMap.get(cc.getTo()).getxPosition()) / 2
                         , (pointListMap.get(cc.getFrom()).getyPosition() + pointListMap.get(cc.getTo()).getyPosition()) / 2);
@@ -465,18 +467,18 @@ public class Controller implements Initializable {
                 if (clickedPoints.size() != 0) {
                     if (p.getName().equals(clickedPoints.get(0)) || p.getName().equals(from)) {
                         gc.setFill(Color.GREEN);
-                        gc.fillOval(p.getxPosition(), p.getyPosition(), Point.POINT_HEIGHT, Point.POINT_WIDTH);
+                        gc.fillOval(p.getxPosition() - Point.POINT_WIDTH/2, p.getyPosition() - Point.POINT_HEIGHT/2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
                     }
                 }
                 if (clickedPoints.size() > 1) {
                     if (p.getName().equals(clickedPoints.get(1)) || p.getName().equals(to)) {
                         gc.setFill(Color.RED);
-                        gc.fillOval(p.getxPosition(), p.getyPosition(), Point.POINT_HEIGHT, Point.POINT_WIDTH);
+                        gc.fillOval(p.getxPosition() - Point.POINT_WIDTH/2, p.getyPosition() - Point.POINT_HEIGHT/2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
                     }
                 }
 
-                gc.fillText(p.getName(), p.getxPosition() + 11, p.getyPosition() + 6);
-                gc.strokeOval(p.getxPosition(), p.getyPosition(), Point.POINT_HEIGHT, Point.POINT_WIDTH);
+                gc.fillText(p.getName(), p.getxPosition() + 8, p.getyPosition() + 5);
+                gc.strokeOval(p.getxPosition() - Point.POINT_WIDTH/2, p.getyPosition() - Point.POINT_HEIGHT/2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
             }
         }
         items = FXCollections.observableArrayList(pointListMap.keySet());
@@ -496,7 +498,8 @@ public class Controller implements Initializable {
             if (p.getName().equals(pointToDelete)) {
                 idToStartDecrement = p.getId() + 1;
                 pointListMap.remove(pointToDelete);
-                decrementID();
+                decrementID(idToStartDecrement);
+                //decrementConnectionsID(idToStartDecrement);
                 pointToDeleteConnection = p.getName();
                 deleteConnectionsAfterDeletePoint();
                 refresh();
@@ -537,6 +540,7 @@ public class Controller implements Initializable {
                 it.remove();
                 System.out.println("usuwam konkretne połaczenie");
                 refresh();
+                break;
             } else {
                 System.out.println("Nie ma takiego połączenia");
                 canDeleteConnection = false;
@@ -550,6 +554,7 @@ public class Controller implements Initializable {
 
     private void addFloor() {
         floor++;
+        totalFloorsNumber ++;
         maxFloor = floor;
         pointPrefix.setText(String.valueOf((char) (64 + floor)));
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
@@ -646,6 +651,7 @@ public class Controller implements Initializable {
             data.put("connectionsArray", connectionsArray);
             JSONObject metaData = new JSONObject();
             metaData.put("idName", idName);
+            metaData.put("numberOfFloor",totalFloorsNumber);
             data.put("metaData", metaData);
         } catch (JSONException e) {
             e.printStackTrace();
@@ -654,9 +660,9 @@ public class Controller implements Initializable {
         return data.toString();
     }
 
-    private void decrementID() {
+    private void decrementID(int idToStart) {
         for (Point pkt : pointListMap.values()) {
-            if (pkt.getId() >= idToStartDecrement) {
+            if (pkt.getId() >= idToStart) {
                 pkt.setId(pkt.getId() - 1);
             }
         }
@@ -665,6 +671,17 @@ public class Controller implements Initializable {
         for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
         System.out.println("");
 
+    }
+
+    private void decrementConnectionsID(int startId){
+        for (Connection c : connections){
+            if(c.getSource() >= startId){
+                c.setSource(c.getSource() - 1);
+            }
+            if(c.getDestination() >= startId){
+                c.setDestination(c.getDestination() -1);
+            }
+        }
     }
 
     private String readJSONFromFIle(String fileName) {
@@ -760,23 +777,31 @@ public class Controller implements Initializable {
         }
     }
 
-    private void checkIfAddedConnectionBetwenFloors() {
+    private void checkIfAddedConnectionBetweenFloors() {
         boolean canSave = false;
         for (Connection c : connections) {
-            if (pointListMap.get(c.getFrom()).getFloor() != pointListMap.get(c.getTo()).getFloor()) {
+            if ((pointListMap.get(c.getFrom()).getFloor() != pointListMap.get(c.getTo()).getFloor())) {
                 canSave = true;
                 break;
             } else {
                 canSave = false;
             }
         }
-        if (canSave) {
+        if (canSave || totalFloorsNumber == 1) {
             saveFileDialog();
         }else {
             showDialogMessage("You should add connection between floor","No connection between floors", Alert.AlertType.INFORMATION);
 
         }
 
+    }
+
+    private void refreshConnectionsID(){
+      for (Connection c : connections)
+      {
+          c.setSource(pointListMap.get(c.getFrom()).getId());
+          c.setDestination(pointListMap.get(c.getTo()).getId());
+      }
     }
 
 }

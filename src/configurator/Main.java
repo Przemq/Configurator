@@ -5,6 +5,9 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import server.Parameters;
+import server.ServerRequest;
+import server.ServiceType;
 
 public class Main extends Application {
 
@@ -20,6 +23,14 @@ public class Main extends Application {
         primaryStage.setResizable(false);
         primaryStage.setScene(scene);
         primaryStage.show();
+       /*new ServerRequest(ServiceType.GET,new server.Parameters()).setServerRequestListener(new ServerRequest.ServerRequestListener() {
+            @Override
+            public void onSuccess(String json) {
+                System.out.println(json);
+            }
+        }).start();*/
+
+
     }
 
 

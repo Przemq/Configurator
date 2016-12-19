@@ -4,7 +4,7 @@ package server;
 public enum ServiceType {
     GET,
     CHECK_VERSION,
-    ADD_FICHE;
+    SET;
 
     public static final String SERVER_PATH = "http://www.przem94.ayz.pl/dijkstra/";
 
@@ -13,10 +13,11 @@ public enum ServiceType {
 
             case GET:
                 return SERVER_PATH + "testData.txt";
+            case SET:
+                return SERVER_PATH + "getData.php ";
             case CHECK_VERSION:
-                return SERVER_PATH + "checkVersion.php";
-            case ADD_FICHE:
-                return SERVER_PATH + "upDateDatabase.php";
+                return SERVER_PATH + "no.txt";
+
         }
         return "Service path is invalid";
     }

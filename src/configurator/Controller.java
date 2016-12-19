@@ -25,6 +25,9 @@ import javafx.stage.Stage;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import server.Parameters;
+import server.ServerRequest;
+import server.ServiceType;
 
 import java.io.*;
 import java.net.URL;
@@ -39,9 +42,6 @@ public class Controller implements Initializable {
     public TextField pathToBackgroundFile;
     public ComboBox fromListAC;
     public ComboBox toListAC;
-    public ComboBox fromListDC;
-    public ComboBox toListDC;
-    public Button buttonDeleteConnection;
     public ComboBox deletePointList;
     public Button buttonDeletePoint;
     public Button buttonFindFile;
@@ -57,6 +57,7 @@ public class Controller implements Initializable {
     public Button buttonFloorDOWN;
     public Button buttonFloorUP;
     public Button buttonEditConf;
+    public Button deleteconnectionButton;
 
     private List<Connection> connections;
     private int id = 0;
@@ -69,8 +70,6 @@ public class Controller implements Initializable {
     private String to;
     private String pointToDelete;
     private String closestPoint;
-    private String fromConnectionDel;
-    private String toConnectionDel;
     private String pointToSave;
     private GraphicsContext gc;
     private GraphicsContext gcBackground;
@@ -87,6 +86,8 @@ public class Controller implements Initializable {
     private float yScale = 0.60443037974f;
     private int idToStartDecrement;
     private int totalFloorsNumber = 1;
+    private String toTEST;
+    private String fromTEST;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -118,7 +119,6 @@ public class Controller implements Initializable {
                     detectClickedPoint(event);
                     deleteClickedPoint(closestPoint);
                     decrementID(idToStartDecrement);
-                    //decrementConnectionsID(idToStartDecrement);
                     for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
                 }
             }
@@ -145,6 +145,7 @@ public class Controller implements Initializable {
                 if (p.getName().equals(newValue)) {
                     from = p.getName();
                     canColorPoints = false;
+                    fromTEST = newValue.toString();
                     refresh();
                 }
             }
@@ -155,6 +156,7 @@ public class Controller implements Initializable {
                 for (Point p : pointListMap.values()) {
                     if (p.getName().equals(newValue)) {
                         to = p.getName();
+                        toTEST = newValue.toString();
                         System.out.print("");
                         canColorPoints = false;
                         refresh();
@@ -169,22 +171,6 @@ public class Controller implements Initializable {
                 if (newValue != null) {
                     pointToDelete = newValue.toString();
                 }
-            }
-        });
-
-        fromListDC.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
-            @Override
-            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                if (newValue != null)
-                    fromConnectionDel = newValue.toString();
-            }
-        });
-
-        toListDC.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
-            @Override
-            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                if (newValue != null)
-                    toConnectionDel = newValue.toString();
             }
         });
 
@@ -273,6 +259,14 @@ public class Controller implements Initializable {
             }
         });
 
+        deleteconnectionButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                deleteConnection();
+                System.out.println("deleteConection");
+            }
+        });
+
     }
 
     public void selectBackgroundFile() {
@@ -339,8 +333,6 @@ public class Controller implements Initializable {
     private void fillListViews(ObservableList<String> items) {
         fromListAC.setItems(items);
         toListAC.setItems(items);
-        fromListDC.setItems(items);
-        toListDC.setItems(items);
         deletePointList.setItems(items);
         detailsPointList.setItems(items);
     }
@@ -534,8 +526,8 @@ public class Controller implements Initializable {
     public void deleteConnection() {
         for (Iterator<Connection> it = connections.iterator(); it.hasNext(); ) {
             Connection con = it.next();
-            if ((con.getTo().equals(fromConnectionDel) && con.getFrom().equals(toConnectionDel)
-                    || (con.getTo().equals(toConnectionDel) && con.getFrom().equals(fromConnectionDel)))) {
+            if ((con.getTo().equals(fromTEST) && con.getFrom().equals(toTEST)
+                    || (con.getTo().equals(toTEST) && con.getFrom().equals(fromTEST)))) {
                 canDeleteConnection = true;
                 it.remove();
                 System.out.println("usuwam konkretne połaczenie");
@@ -707,6 +699,7 @@ public class Controller implements Initializable {
             JSONObject receivedData = new JSONObject(json);
             JSONObject metaData = receivedData.getJSONObject("metaData");
             idName = metaData.getInt("idName");
+            maxFloor = metaData.getInt("numberOfFloor");
             JSONArray pointsArray = receivedData.getJSONArray("pointsArray");
             JSONArray connectionsArray = receivedData.getJSONArray("connectionsArray");
             for (int i = 0; i < pointsArray.length(); i++) {
@@ -762,6 +755,7 @@ public class Controller implements Initializable {
         File selectedFile = fileChooser.showSaveDialog(new Stage());
         if (selectedFile != null) {
             saveFile(createJSONObjectToSave(pointListMap, connections), selectedFile);
+            sendDataOnHosting(createJSONObjectToSave(pointListMap, connections));
             showDialogMessage("File saved", "Success", Alert.AlertType.INFORMATION);
         }
     }
@@ -803,5 +797,9 @@ public class Controller implements Initializable {
           c.setDestination(pointListMap.get(c.getTo()).getId());
       }
     }
+
+    private void sendDataOnHosting(String dataToSend){
+        new ServerRequest(ServiceType.SET,new Parameters().addParam("dane",dataToSend)).start();
+        }
 
 }

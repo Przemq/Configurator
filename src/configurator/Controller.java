@@ -700,6 +700,7 @@ public class Controller implements Initializable {
             JSONObject metaData = receivedData.getJSONObject("metaData");
             idName = metaData.getInt("idName");
             maxFloor = metaData.getInt("numberOfFloor");
+            totalFloorsNumber = metaData.getInt("numberOfFloor");
             JSONArray pointsArray = receivedData.getJSONArray("pointsArray");
             JSONArray connectionsArray = receivedData.getJSONArray("connectionsArray");
             for (int i = 0; i < pointsArray.length(); i++) {

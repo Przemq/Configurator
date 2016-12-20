@@ -22,6 +22,9 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+
+
+import org.apache.commons.logging.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,6 +33,8 @@ import server.ServerRequest;
 import server.ServiceType;
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 
@@ -247,6 +252,13 @@ public class Controller implements Initializable {
             public void handle(ActionEvent event) {
                 refreshConnectionsID();
                 checkIfAddedConnectionBetweenFloors();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        uploadFile("C:\\Users\\PrzemekMadzia\\Desktop\\Grafiki inżynierka\\pietro2.png");
+                    }
+                }).start();
+
             }
         });
 
@@ -375,7 +387,7 @@ public class Controller implements Initializable {
                     c.setFrom(pointDetailName.getText());
             }
             //decrementID(tmp.getId()+1);
-           // decrementConnectionsID(tmp.getId()+1);
+            // decrementConnectionsID(tmp.getId()+1);
             tmp.setName(pointDetailName.getText());
             tmp.setMiddleSource(isMiddleSource);
             pointListMap.put(tmp.getName(), tmp);
@@ -459,18 +471,18 @@ public class Controller implements Initializable {
                 if (clickedPoints.size() != 0) {
                     if (p.getName().equals(clickedPoints.get(0)) || p.getName().equals(from)) {
                         gc.setFill(Color.GREEN);
-                        gc.fillOval(p.getxPosition() - Point.POINT_WIDTH/2, p.getyPosition() - Point.POINT_HEIGHT/2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
+                        gc.fillOval(p.getxPosition() - Point.POINT_WIDTH / 2, p.getyPosition() - Point.POINT_HEIGHT / 2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
                     }
                 }
                 if (clickedPoints.size() > 1) {
                     if (p.getName().equals(clickedPoints.get(1)) || p.getName().equals(to)) {
                         gc.setFill(Color.RED);
-                        gc.fillOval(p.getxPosition() - Point.POINT_WIDTH/2, p.getyPosition() - Point.POINT_HEIGHT/2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
+                        gc.fillOval(p.getxPosition() - Point.POINT_WIDTH / 2, p.getyPosition() - Point.POINT_HEIGHT / 2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
                     }
                 }
 
                 gc.fillText(p.getName(), p.getxPosition() + 8, p.getyPosition() + 5);
-                gc.strokeOval(p.getxPosition() - Point.POINT_WIDTH/2, p.getyPosition() - Point.POINT_HEIGHT/2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
+                gc.strokeOval(p.getxPosition() - Point.POINT_WIDTH / 2, p.getyPosition() - Point.POINT_HEIGHT / 2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
             }
         }
         items = FXCollections.observableArrayList(pointListMap.keySet());
@@ -546,7 +558,7 @@ public class Controller implements Initializable {
 
     private void addFloor() {
         floor++;
-        totalFloorsNumber ++;
+        totalFloorsNumber++;
         maxFloor = floor;
         pointPrefix.setText(String.valueOf((char) (64 + floor)));
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
@@ -643,7 +655,7 @@ public class Controller implements Initializable {
             data.put("connectionsArray", connectionsArray);
             JSONObject metaData = new JSONObject();
             metaData.put("idName", idName);
-            metaData.put("numberOfFloor",totalFloorsNumber);
+            metaData.put("numberOfFloor", totalFloorsNumber);
             data.put("metaData", metaData);
         } catch (JSONException e) {
             e.printStackTrace();
@@ -665,13 +677,13 @@ public class Controller implements Initializable {
 
     }
 
-    private void decrementConnectionsID(int startId){
-        for (Connection c : connections){
-            if(c.getSource() >= startId){
+    private void decrementConnectionsID(int startId) {
+        for (Connection c : connections) {
+            if (c.getSource() >= startId) {
                 c.setSource(c.getSource() - 1);
             }
-            if(c.getDestination() >= startId){
-                c.setDestination(c.getDestination() -1);
+            if (c.getDestination() >= startId) {
+                c.setDestination(c.getDestination() - 1);
             }
         }
     }
@@ -757,6 +769,7 @@ public class Controller implements Initializable {
         if (selectedFile != null) {
             saveFile(createJSONObjectToSave(pointListMap, connections), selectedFile);
             sendDataOnHosting(createJSONObjectToSave(pointListMap, connections));
+            //System.out.println(createJSONObjectToSave(pointListMap, connections));
             showDialogMessage("File saved", "Success", Alert.AlertType.INFORMATION);
         }
     }
@@ -784,23 +797,101 @@ public class Controller implements Initializable {
         }
         if (canSave || totalFloorsNumber == 1) {
             saveFileDialog();
-        }else {
-            showDialogMessage("You should add connection between floor","No connection between floors", Alert.AlertType.INFORMATION);
+        } else {
+            showDialogMessage("You should add connection between floor", "No connection between floors", Alert.AlertType.INFORMATION);
 
         }
 
     }
 
-    private void refreshConnectionsID(){
-      for (Connection c : connections)
-      {
-          c.setSource(pointListMap.get(c.getFrom()).getId());
-          c.setDestination(pointListMap.get(c.getTo()).getId());
-      }
+    private void refreshConnectionsID() {
+        for (Connection c : connections) {
+            c.setSource(pointListMap.get(c.getFrom()).getId());
+            c.setDestination(pointListMap.get(c.getTo()).getId());
+        }
     }
 
-    private void sendDataOnHosting(String dataToSend){
-        new ServerRequest(ServiceType.SET,new Parameters().addParam("dane",dataToSend)).start();
+    private void sendDataOnHosting(String dataToSend) {
+        new ServerRequest(ServiceType.SET, new Parameters().addParam("dane", dataToSend)).start();
+    }
+
+    public void uploadFile(String sourceFileUri) {
+        String fileName = sourceFileUri;
+
+        HttpURLConnection conn = null;
+        DataOutputStream dos = null;
+        String lineEnd = "\r\n";
+        String twoHyphens = "--";
+        String boundary = "*****";
+        int bytesRead, bytesAvailable, bufferSize;
+        byte[] buffer;
+        int maxBufferSize = 1 * 1024 * 1024;
+        File sourceFile = new File(sourceFileUri);
+
+        try {
+
+            // open a URL connection to the Servlet
+            FileInputStream fileInputStream = new FileInputStream(sourceFile);
+            URL url = new URL(ServiceType.getURL(ServiceType.SEND_FILE));
+
+            // Open a HTTP  connection to  the URL
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setDoInput(true); // Allow Inputs
+            conn.setDoOutput(true); // Allow Outputs
+            conn.setUseCaches(false); // Don't use a Cached Copy
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Connection", "Keep-Alive");
+            conn.setRequestProperty("ENCTYPE", "multipart/form-data");
+            conn.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
+            conn.setRequestProperty("uploaded_file", fileName);
+
+            dos = new DataOutputStream(conn.getOutputStream());
+
+            dos.writeBytes(twoHyphens + boundary + lineEnd);
+            dos.writeBytes("Content-Disposition: form-data; name=\"uploaded_file\";filename=\""
+                    + fileName + "\"" + lineEnd);
+
+            dos.writeBytes(lineEnd);
+
+            // create a buffer of  maximum size
+            bytesAvailable = fileInputStream.available();
+
+            bufferSize = Math.min(bytesAvailable, maxBufferSize);
+            buffer = new byte[bufferSize];
+
+            // read file and write it into form...
+            bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+
+
+            while (bytesRead > 0) {
+
+                dos.write(buffer, 0, bufferSize);
+                bytesAvailable = fileInputStream.available();
+                bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+            }
+
+            // send multipart form data necesssary after file data...
+            dos.writeBytes(lineEnd);
+            dos.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
+
+            //close the streams //
+            fileInputStream.close();
+            dos.flush();
+            dos.close();
+            InputStream in = new BufferedInputStream(conn.getInputStream());
+            //System.out.println(ServerRequest.streamToString(in));
+        } catch (MalformedURLException ex) {
+
+            ex.printStackTrace();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
         }
+
+        System.out.println("s5");
+    }
 
 }

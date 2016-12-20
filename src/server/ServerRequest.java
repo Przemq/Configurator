@@ -1,19 +1,10 @@
 package server;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
-
 
 
 public class ServerRequest extends Thread {
@@ -33,8 +24,6 @@ public class ServerRequest extends Thread {
     }
 
 
-
-
     private String doInBackground() {
 
         try {
@@ -44,16 +33,17 @@ public class ServerRequest extends Thread {
             connection.setDoInput(true);
             connection.setDoOutput(true);
             connection.setConnectTimeout(10000);
-            HashMap<String,String> params = new HashMap<>();
+            HashMap<String, String> params = new HashMap<>();
             for (String key : parameters.getParameters().keySet()) {
                 params.put(key, parameters.getParameters().get(key));
             }
+
             OutputStream os = connection.getOutputStream();
 
 
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
             writer.write(getQuery(params));
-            System.out.println("params: "+getQuery(params));
+            System.out.println("params: " + getQuery(params));
             writer.flush();
             writer.close();
             os.close();
@@ -68,7 +58,7 @@ public class ServerRequest extends Thread {
 
     }
 
-    private String getQuery(HashMap<String,String> params) {
+    private String getQuery(HashMap<String, String> params) {
         StringBuilder result = new StringBuilder();
         boolean first = true;
 
@@ -93,7 +83,7 @@ public class ServerRequest extends Thread {
     protected void onPostExecute(String result) {
         if (serverRequestListener != null) {
 
-                serverRequestListener.onSuccess(result);
+            serverRequestListener.onSuccess(result);
         }
     }
 
@@ -121,6 +111,6 @@ public class ServerRequest extends Thread {
 
     public interface ServerRequestListener {
         void onSuccess(String json);
-
     }
+
 }

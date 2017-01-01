@@ -3,7 +3,7 @@ package server;
 
 public enum ServiceType {
     GET,
-    SET,
+    SET_CONFIGURATION,
     SEND_FILE,;
 
     public static final String SERVER_PATH = "http://www.przem94.ayz.pl/dijkstra/";
@@ -13,7 +13,7 @@ public enum ServiceType {
 
             case GET:
                 return SERVER_PATH + "testData.txt";
-            case SET:
+            case SET_CONFIGURATION:
                 return SERVER_PATH + "getData.php";
             case SEND_FILE:
                 return SERVER_PATH + "uploadToServer.php";

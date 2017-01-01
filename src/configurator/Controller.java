@@ -35,7 +35,9 @@ import server.ServiceType;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class Controller implements Initializable {
@@ -63,6 +65,7 @@ public class Controller implements Initializable {
     public Button buttonFloorUP;
     public Button buttonEditConf;
     public Button deleteconnectionButton;
+    public Button buttonSaveImages;
 
     private List<Connection> connections;
     private int id = 0;
@@ -104,28 +107,26 @@ public class Controller implements Initializable {
         pointListMap = new LinkedHashMap<>();
         backgroundSourcePath = new HashMap<>();
         backgroundSourcePath.put(0, "Grafika tymczasowa");
+        setOnStartBackground();
         addListeners();
     }
 
     private void addListeners() {
 
-        canvas.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                if (event.getButton() == MouseButton.PRIMARY) {
-                    drawPoint(event);
-                }
-                if (event.getButton() == MouseButton.SECONDARY) {
-                    canColorPoints = true;
-                    detectClickedPoint(event);
-                    addPointsToQueue(closestPoint);
-                }
-                if (event.getButton() == MouseButton.MIDDLE) {
-                    detectClickedPoint(event);
-                    deleteClickedPoint(closestPoint);
-                    decrementID(idToStartDecrement);
-                    for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
-                }
+        canvas.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                drawPoint(event);
+            }
+            if (event.getButton() == MouseButton.SECONDARY) {
+                canColorPoints = true;
+                detectClickedPoint(event);
+                addPointsToQueue(closestPoint);
+            }
+            if (event.getButton() == MouseButton.MIDDLE) {
+                detectClickedPoint(event);
+                deleteClickedPoint(closestPoint);
+                decrementID(idToStartDecrement);
+                for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
             }
         });
 
@@ -186,34 +187,28 @@ public class Controller implements Initializable {
             }
         });
 
-        buttonAddFloor.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                addFloor();
-                allowAddPoints = false;
-            }
+        buttonAddFloor.setOnAction(event -> {
+            addFloor();
+            allowAddPoints = false;
         });
 
-        buttonFloorUP.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                if (floor < maxFloor) {
-                    floor++;
-                    pointPrefix.setText(String.valueOf((char) (64 + floor)));
-                    floorEditText.setText(String.valueOf(floor));
-                    buttonFloorDOWN.setDisable(false);
-                    if (backgroundSourcePath.get(floor) != null) {
-                        setCanvasBackground(backgroundSourcePath.get(floor));
-                        System.out.println(backgroundSourcePath.get(floor));
-                    }
-                    refresh();
-                } else {
-                    buttonFloorUP.setDisable(true);
-                    showDialogMessage("There is no " + String.valueOf(maxFloor + 1) + "th floor", "Floor error", Alert.AlertType.INFORMATION);
+        buttonFloorUP.setOnAction(event -> {
+            if (floor < maxFloor) {
+                floor++;
+                pointPrefix.setText(String.valueOf((char) (64 + floor)));
+                floorEditText.setText(String.valueOf(floor));
+                buttonFloorDOWN.setDisable(false);
+                if (backgroundSourcePath.get(floor) != null) {
+                    setCanvasBackground(backgroundSourcePath.get(floor));
+                    System.out.println(backgroundSourcePath.get(floor));
                 }
-
-
+                refresh();
+            } else {
+                buttonFloorUP.setDisable(true);
+                showDialogMessage("There is no " + String.valueOf(maxFloor + 1) + "th floor", "Floor error", Alert.AlertType.INFORMATION);
             }
+
+
         });
 
         buttonFloorDOWN.setOnAction(new EventHandler<ActionEvent>() {
@@ -247,37 +242,24 @@ public class Controller implements Initializable {
             }
         });
 
-        buttonSaveAll.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                refreshConnectionsID();
-                checkIfAddedConnectionBetweenFloors();
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        uploadFile("C:\\Users\\PrzemekMadzia\\Desktop\\Grafiki inżynierka\\pietro2.png");
-                    }
-                }).start();
+        buttonSaveAll.setOnAction(event -> {
+            refreshConnectionsID();
+            checkIfAddedConnectionBetweenFloors();
 
-            }
         });
 
-        buttonEditConf.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                selectConfigurationFile();
-                id = pointListMap.size();
+        buttonEditConf.setOnAction(event -> {
+            selectConfigurationFile();
+            id = pointListMap.size();
 
-            }
         });
 
-        deleteconnectionButton.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                deleteConnection();
-                System.out.println("deleteConection");
-            }
+        deleteconnectionButton.setOnAction(event -> {
+            deleteConnection();
+            System.out.println("deleteConection");
         });
+
+        buttonSaveImages.setOnAction(event -> sendImageOnHosting());
 
     }
 
@@ -300,6 +282,7 @@ public class Controller implements Initializable {
             }
             allowAddPoints = true;
         }
+        for (String s : backgroundSourcePath.values()) System.out.println(s);
     }
 
     private void setCanvasBackground(String filePath) {
@@ -619,9 +602,10 @@ public class Controller implements Initializable {
         JSONObject data = new JSONObject();
         JSONArray pointsArray = new JSONArray();
         JSONArray connectionsArray = new JSONArray();
-        for (Point p : pointMap.values()) {
-            JSONObject point = new JSONObject();
-            try {
+        try {
+            for (Point p : pointMap.values()) {
+                JSONObject point = new JSONObject();
+
                 point.put("id", p.getId());
                 point.put("name", p.getName());
                 point.put("xPosition", p.getxPosition() / xScale);
@@ -629,34 +613,38 @@ public class Controller implements Initializable {
                 point.put("floor", p.getFloor());
                 point.put("isMiddleSource", p.isMiddleSource());
                 pointsArray.put(point);
-            } catch (JSONException e) {
-                e.printStackTrace();
+                data.put("pointsArray", pointsArray);
             }
-        }
-        try {
-            data.put("pointsArray", pointsArray);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        for (Connection c : connectionsList) {
-            JSONObject connection = new JSONObject();
-            try {
+
+            for (Connection c : connectionsList) {
+                JSONObject connection = new JSONObject();
+
                 connection.put("source", c.getSource());
                 connection.put("destination", c.getDestination());
                 connection.put("distance", c.getDistance());
                 connection.put("from", c.getFrom());
                 connection.put("to", c.getTo());
                 connectionsArray.put(connection);
-            } catch (JSONException e) {
-                e.printStackTrace();
             }
-        }
-        try {
+
             data.put("connectionsArray", connectionsArray);
+
+            JSONObject floors = new JSONObject();
+            for (Integer floor : backgroundSourcePath.keySet())
+            {
+                    if(floor != 0) {
+                        floors.put(String.valueOf(floor),new File(backgroundSourcePath.get(floor)).getName());
+
+                    }
+            }
+
             JSONObject metaData = new JSONObject();
             metaData.put("idName", idName);
             metaData.put("numberOfFloor", totalFloorsNumber);
+
+            metaData.put("floorsImages",floors);
             data.put("metaData", metaData);
+
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -677,17 +665,6 @@ public class Controller implements Initializable {
 
     }
 
-    private void decrementConnectionsID(int startId) {
-        for (Connection c : connections) {
-            if (c.getSource() >= startId) {
-                c.setSource(c.getSource() - 1);
-            }
-            if (c.getDestination() >= startId) {
-                c.setDestination(c.getDestination() - 1);
-            }
-        }
-    }
-
     private String readJSONFromFIle(String fileName) {
         File file = new File(fileName);
         StringBuilder text = new StringBuilder();
@@ -706,9 +683,12 @@ public class Controller implements Initializable {
     }
 
     private void parseConfigurationFIle(String json) {
+        pointListMap.clear();
+        connections.clear();
         try {
             System.out.println(json);
             JSONObject receivedData = new JSONObject(json);
+
             JSONObject metaData = receivedData.getJSONObject("metaData");
             idName = metaData.getInt("idName");
             maxFloor = metaData.getInt("numberOfFloor");
@@ -812,86 +792,35 @@ public class Controller implements Initializable {
     }
 
     private void sendDataOnHosting(String dataToSend) {
-        new ServerRequest(ServiceType.SET, new Parameters().addParam("dane", dataToSend)).start();
+        new ServerRequest(ServiceType.SET_CONFIGURATION, new Parameters().addParam("dane", dataToSend)).start();
     }
 
-    public void uploadFile(String sourceFileUri) {
-        String fileName = sourceFileUri;
-
-        HttpURLConnection conn = null;
-        DataOutputStream dos = null;
-        String lineEnd = "\r\n";
-        String twoHyphens = "--";
-        String boundary = "*****";
-        int bytesRead, bytesAvailable, bufferSize;
-        byte[] buffer;
-        int maxBufferSize = 1 * 1024 * 1024;
-        File sourceFile = new File(sourceFileUri);
-
-        try {
-
-            // open a URL connection to the Servlet
-            FileInputStream fileInputStream = new FileInputStream(sourceFile);
-            URL url = new URL(ServiceType.getURL(ServiceType.SEND_FILE));
-
-            // Open a HTTP  connection to  the URL
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setDoInput(true); // Allow Inputs
-            conn.setDoOutput(true); // Allow Outputs
-            conn.setUseCaches(false); // Don't use a Cached Copy
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Connection", "Keep-Alive");
-            conn.setRequestProperty("ENCTYPE", "multipart/form-data");
-            conn.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
-            conn.setRequestProperty("uploaded_file", fileName);
-
-            dos = new DataOutputStream(conn.getOutputStream());
-
-            dos.writeBytes(twoHyphens + boundary + lineEnd);
-            dos.writeBytes("Content-Disposition: form-data; name=\"uploaded_file\";filename=\""
-                    + fileName + "\"" + lineEnd);
-
-            dos.writeBytes(lineEnd);
-
-            // create a buffer of  maximum size
-            bytesAvailable = fileInputStream.available();
-
-            bufferSize = Math.min(bytesAvailable, maxBufferSize);
-            buffer = new byte[bufferSize];
-
-            // read file and write it into form...
-            bytesRead = fileInputStream.read(buffer, 0, bufferSize);
-
-
-            while (bytesRead > 0) {
-
-                dos.write(buffer, 0, bufferSize);
-                bytesAvailable = fileInputStream.available();
-                bufferSize = Math.min(bytesAvailable, maxBufferSize);
-                bytesRead = fileInputStream.read(buffer, 0, bufferSize);
-            }
-
-            // send multipart form data necesssary after file data...
-            dos.writeBytes(lineEnd);
-            dos.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
-
-            //close the streams //
-            fileInputStream.close();
-            dos.flush();
-            dos.close();
-            InputStream in = new BufferedInputStream(conn.getInputStream());
-            //System.out.println(ServerRequest.streamToString(in));
-        } catch (MalformedURLException ex) {
-
-            ex.printStackTrace();
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
+    private void sendImageOnHosting() {
+        String uri;
+        if (backgroundSourcePath.size() < 2) {
+            showDialogMessage("No file to upload", "No file selected", Alert.AlertType.INFORMATION);
+            return;
         }
+        for (String s : backgroundSourcePath.values()) {
+            if (!s.equals("Grafika tymczasowa")) {
+                try {
+                    uri = Paths.get(new URL(s).toURI()).toFile().toString();
+                    new ServerRequest(ServiceType.SEND_FILE, new Parameters().addParam("img", uri)).start();
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
 
-        System.out.println("s5");
+            }
+        }
+        showDialogMessage("Files successfully uploaded to server", "Upload successful", Alert.AlertType.INFORMATION);
+    }
+
+    private void setOnStartBackground(){
+        gcBackground = backgroundCanvas.getGraphicsContext2D();
+        Image img = new Image("file:/C:/Users/PrzemekMadzia/Desktop/Grafiki%20inżynierka/logo.png");
+        gcBackground.drawImage(img, 0, backgroundCanvas.getHeight()/3.5, backgroundCanvas.getWidth(), backgroundCanvas.getHeight()/2.7);
     }
 
 }

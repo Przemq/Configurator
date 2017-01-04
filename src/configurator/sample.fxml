@@ -5,13 +5,6 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
-<?import javafx.scene.canvas.Canvas?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Separator?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.text.Text?>
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="configurator.Controller">
    <children>
@@ -34,12 +27,12 @@
       <Text layoutX="11.0" layoutY="649.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Path :" />
       <TextField fx:id="pathToBackgroundFile" layoutX="85.0" layoutY="638.0" />
       <Button fx:id="buttonFindFile" layoutX="155.0" layoutY="672.0" mnemonicParsing="false" onAction="#selectBackgroundFile" text="Open file" />
-      <Text fill="#b59f9f" layoutX="93.0" layoutY="295.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Point details" />
+      <Text fill="#b59f9f" layoutX="76.0" layoutY="295.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Point details" />
       <ComboBox fx:id="detailsPointList" layoutX="72.0" layoutY="301.0" prefHeight="25.0" prefWidth="149.0" />
       <Text layoutX="13.0" layoutY="318.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Point" />
       <Text layoutX="9.0" layoutY="152.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Distance" />
       <TextField fx:id="distanceText" layoutX="70.0" layoutY="137.0" prefHeight="25.0" prefWidth="38.0" />
-      <Separator layoutX="-7.0" layoutY="281.0" prefHeight="3.0" prefWidth="245.0" />
+      <Separator layoutX="1.0" layoutY="281.0" prefHeight="3.0" prefWidth="244.0" />
       <Separator layoutX="1.0" layoutY="35.0" prefHeight="6.0" prefWidth="244.0" />
       <Separator layoutX="1.0" layoutY="173.0" prefHeight="3.0" prefWidth="244.0" />
       <Text layoutX="12.0" layoutY="355.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Name :" />
@@ -51,11 +44,17 @@
       <Separator layoutX="2.0" layoutY="613.0" prefHeight="3.0" prefWidth="896.0" />
       <Button fx:id="buttonSaveDetails" layoutX="131.0" layoutY="410.0" mnemonicParsing="false" onAction="#savePointChanges" text="Save changes" />
       <Button fx:id="buttonAddFloor" layoutX="258.0" layoutY="626.0" mnemonicParsing="false" text="Add floor" />
-      <Button fx:id="buttonSaveAll" layoutX="757.0" layoutY="673.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="120.0" text="Save Configuration" />
+      <Button fx:id="buttonSaveAll" layoutX="757.0" layoutY="673.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="120.0" text="Send Configuration" />
       <Button fx:id="buttonEditConf" layoutX="257.0" layoutY="672.0" mnemonicParsing="false" text="Edit existing configuration" />
       <Button fx:id="buttonFloorDOWN" layoutX="450.0" layoutY="651.0" mnemonicParsing="false" text="Previous" />
       <Button fx:id="buttonFloorUP" layoutX="542.0" layoutY="651.0" mnemonicParsing="false" text="Next" />
-      <Button fx:id="deleteconnectionButton" layoutX="121.0" layoutY="137.0" mnemonicParsing="false" text="Delete" />
+      <Button fx:id="deleteConnectionButton" layoutX="121.0" layoutY="137.0" mnemonicParsing="false" text="Delete" />
       <Button fx:id="buttonSaveImages" layoutX="757.0" layoutY="639.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="120.0" text="Send Images" />
+      <Separator layoutX="1.0" layoutY="424.0" prefHeight="48.0" prefWidth="244.0" />
+      <Text fill="#b59f9f" layoutX="100.0" layoutY="461.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Preview" />
+      <ListView fx:id="connectionsList" layoutX="134.0" layoutY="492.0" maxHeight="139.0" maxWidth="158.0" prefHeight="115.0" prefWidth="88.0" />
+      <ListView fx:id="pointList" layoutX="24.0" layoutY="492.0" prefHeight="115.0" prefWidth="88.0" />
+      <Text layoutX="52.0" layoutY="484.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Points" />
+      <Text layoutX="142.0" layoutY="485.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Connections" />
    </children>
 </AnchorPane>

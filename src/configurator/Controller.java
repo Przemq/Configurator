@@ -12,10 +12,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -24,7 +21,6 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 
-import org.apache.commons.logging.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,7 +29,6 @@ import server.ServerRequest;
 import server.ServiceType;
 
 import java.io.*;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -64,15 +59,16 @@ public class Controller implements Initializable {
     public Button buttonFloorDOWN;
     public Button buttonFloorUP;
     public Button buttonEditConf;
-    public Button deleteconnectionButton;
+    public Button deleteConnectionButton;
     public Button buttonSaveImages;
+    public ListView connectionsList;
+    public ListView pointList;
 
     private List<Connection> connections;
     private int id = 0;
     private int idName = 0;
     private int floor = 1;
     private int maxFloor = 0;
-    private int minFloor = 0;
     private boolean allowAddPoints = true; // w produkcji ma być false
     private String from;
     private String to;
@@ -96,6 +92,8 @@ public class Controller implements Initializable {
     private int totalFloorsNumber = 1;
     private String toTEST;
     private String fromTEST;
+    private ObservableList<String> connectionsItems;
+    private ObservableList<String> pointsItems;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -254,7 +252,7 @@ public class Controller implements Initializable {
 
         });
 
-        deleteconnectionButton.setOnAction(event -> {
+        deleteConnectionButton.setOnAction(event -> {
             deleteConnection();
             System.out.println("deleteConection");
         });
@@ -330,6 +328,8 @@ public class Controller implements Initializable {
         toListAC.setItems(items);
         deletePointList.setItems(items);
         detailsPointList.setItems(items);
+        fillUILists();
+
     }
 
     private void initializeIsMiddleSourceList() {
@@ -629,12 +629,11 @@ public class Controller implements Initializable {
 
             data.put("connectionsArray", connectionsArray);
 
-            JSONObject floors = new JSONObject();
+            JSONArray floors = new JSONArray();
             for (Integer floor : backgroundSourcePath.keySet())
             {
                     if(floor != 0) {
-                        floors.put(String.valueOf(floor),new File(backgroundSourcePath.get(floor)).getName());
-
+                        floors.put(new File(backgroundSourcePath.get(floor)).getName());
                     }
             }
 
@@ -821,6 +820,27 @@ public class Controller implements Initializable {
         gcBackground = backgroundCanvas.getGraphicsContext2D();
         Image img = new Image("file:/C:/Users/PrzemekMadzia/Desktop/Grafiki%20inżynierka/logo.png");
         gcBackground.drawImage(img, 0, backgroundCanvas.getHeight()/3.5, backgroundCanvas.getWidth(), backgroundCanvas.getHeight()/2.7);
+    }
+
+    private void fillUILists(){
+
+        ArrayList connectionsUIList = new ArrayList();
+        ArrayList pointsUIList = new ArrayList();
+
+        for (Connection c : connections){
+            String tmp = c. getFrom() + "->" + c.getTo();
+            connectionsUIList.add(tmp);
+        }
+        connectionsItems = FXCollections.observableArrayList(connectionsUIList);
+        connectionsList.setItems(connectionsItems);
+
+        for (String p : pointListMap.keySet()){
+            pointsUIList.add(p);
+        }
+
+        pointsItems = FXCollections.observableArrayList(pointsUIList);
+        pointList.setItems(pointsItems);
+
     }
 
 }

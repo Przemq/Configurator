@@ -35,6 +35,8 @@ import java.net.URL;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static utils.IOHelper.*;
+
 public class Controller implements Initializable {
 
     @FXML
@@ -69,7 +71,7 @@ public class Controller implements Initializable {
     private int idName = 0;
     private int floor = 1;
     private int maxFloor = 0;
-    private boolean allowAddPoints = true; // w produkcji ma być false
+    private boolean allowAddPoints = false; // w produkcji ma być false
     private String from;
     private String to;
     private String pointToDelete;
@@ -84,7 +86,6 @@ public class Controller implements Initializable {
     private boolean canDeleteConnection = false;
     private boolean showInterFloorConnectionInfo = false;
     private LinkedList<String> clickedPoints = new LinkedList<>();
-    private boolean canColorPoints = false;
     private HashMap<Integer, String> backgroundSourcePath;
     private float xScale = 0.88333333333f;
     private float yScale = 0.60443037974f;
@@ -104,7 +105,7 @@ public class Controller implements Initializable {
         connections = new ArrayList<>();
         pointListMap = new LinkedHashMap<>();
         backgroundSourcePath = new HashMap<>();
-        backgroundSourcePath.put(0, "Grafika tymczasowa");
+        backgroundSourcePath.put(0, "");
         setOnStartBackground();
         addListeners();
     }
@@ -116,7 +117,6 @@ public class Controller implements Initializable {
                 drawPoint(event);
             }
             if (event.getButton() == MouseButton.SECONDARY) {
-                canColorPoints = true;
                 detectClickedPoint(event);
                 addPointsToQueue(closestPoint);
             }
@@ -148,7 +148,6 @@ public class Controller implements Initializable {
             for (Point p : pointListMap.values()) {
                 if (p.getName().equals(newValue)) {
                     from = p.getName();
-                    canColorPoints = false;
                     fromTEST = newValue.toString();
                     refresh();
                 }
@@ -162,7 +161,6 @@ public class Controller implements Initializable {
                         to = p.getName();
                         toTEST = newValue.toString();
                         System.out.print("");
-                        canColorPoints = false;
                         refresh();
                     }
                 }
@@ -191,6 +189,7 @@ public class Controller implements Initializable {
         });
 
         buttonFloorUP.setOnAction(event -> {
+
             if (floor < maxFloor) {
                 floor++;
                 pointPrefix.setText(String.valueOf((char) (64 + floor)));
@@ -664,23 +663,6 @@ public class Controller implements Initializable {
 
     }
 
-    private String readJSONFromFIle(String fileName) {
-        File file = new File(fileName);
-        StringBuilder text = new StringBuilder();
-
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(file));
-            String line;
-            while ((line = br.readLine()) != null) {
-                text.append(line);
-            }
-            br.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return text.toString();
-    }
-
     private void parseConfigurationFIle(String json) {
         pointListMap.clear();
         connections.clear();
@@ -692,6 +674,12 @@ public class Controller implements Initializable {
             idName = metaData.getInt("idName");
             maxFloor = metaData.getInt("numberOfFloor");
             totalFloorsNumber = metaData.getInt("numberOfFloor");
+            JSONArray floorImages = metaData.getJSONArray("floorsImages");
+            for (int i = 1; i <= floorImages.length(); i++){
+                backgroundSourcePath.put(i,"file:/C:/Users/PrzemekMadzia/Desktop/Grafiki%20inżynierka/"+floorImages.getString(i-1));
+            }
+            setCanvasBackground(backgroundSourcePath.get(floor));
+
             JSONArray pointsArray = receivedData.getJSONArray("pointsArray");
             JSONArray connectionsArray = receivedData.getJSONArray("connectionsArray");
             for (int i = 0; i < pointsArray.length(); i++) {
@@ -748,21 +736,10 @@ public class Controller implements Initializable {
         if (selectedFile != null) {
             saveFile(createJSONObjectToSave(pointListMap, connections), selectedFile);
             sendDataOnHosting(createJSONObjectToSave(pointListMap, connections));
-            //System.out.println(createJSONObjectToSave(pointListMap, connections));
             showDialogMessage("File saved", "Success", Alert.AlertType.INFORMATION);
         }
     }
 
-    private void saveFile(String content, File file) {
-        try {
-            FileWriter fileWriter = null;
-            fileWriter = new FileWriter(file);
-            fileWriter.write(content);
-            fileWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     private void checkIfAddedConnectionBetweenFloors() {
         boolean canSave = false;
@@ -801,7 +778,7 @@ public class Controller implements Initializable {
             return;
         }
         for (String s : backgroundSourcePath.values()) {
-            if (!s.equals("Grafika tymczasowa")) {
+            if (!s.equals("")) {
                 try {
                     uri = Paths.get(new URL(s).toURI()).toFile().toString();
                     new ServerRequest(ServiceType.SEND_FILE, new Parameters().addParam("img", uri)).start();

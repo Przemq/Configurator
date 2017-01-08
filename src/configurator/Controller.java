@@ -95,6 +95,7 @@ public class Controller implements Initializable {
     private String fromTEST;
     private ObservableList<String> connectionsItems;
     private ObservableList<String> pointsItems;
+    private static float Y_CORRECTION_FOR_DISTANCE_TEXT = 3;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -106,6 +107,7 @@ public class Controller implements Initializable {
         pointListMap = new LinkedHashMap<>();
         backgroundSourcePath = new HashMap<>();
         backgroundSourcePath.put(0, "");
+        floorEditText.setEditable(false);
         setOnStartBackground();
         addListeners();
     }
@@ -434,7 +436,7 @@ public class Controller implements Initializable {
                         pointListMap.get(cc.getTo()).getyPosition());
                 gc.setFill(Color.GREY);
                 gc.fillText(String.valueOf(cc.getDistance()), (pointListMap.get(cc.getFrom()).getxPosition() + pointListMap.get(cc.getTo()).getxPosition()) / 2
-                        , (pointListMap.get(cc.getFrom()).getyPosition() + pointListMap.get(cc.getTo()).getyPosition()) / 2);
+                        , (pointListMap.get(cc.getFrom()).getyPosition() + pointListMap.get(cc.getTo()).getyPosition()) / 2 - Y_CORRECTION_FOR_DISTANCE_TEXT);
                 gc.setFill(Color.BLACK);
             }
         }
@@ -739,7 +741,6 @@ public class Controller implements Initializable {
             showDialogMessage("File saved", "Success", Alert.AlertType.INFORMATION);
         }
     }
-
 
     private void checkIfAddedConnectionBetweenFloors() {
         boolean canSave = false;

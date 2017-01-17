@@ -1,13 +1,12 @@
 package domain;
 
 public class Point  {
-
-
-    private int floor;
-    private boolean isMiddleSource;
+    private int id;
     private String name;
     private float xPosition;
     private float yPosition;
+    private int floor;
+    private boolean isMiddleSource;
     public static double POINT_WIDTH = 8;
     public static double POINT_HEIGHT = 8;
 
@@ -20,8 +19,6 @@ public class Point  {
         this.yPosition = yPosition;
         this.isMiddleSource = isMiddleSource;
     }
-
-    private int id;
 
     public int getId() {
         return id;
@@ -55,19 +52,19 @@ public class Point  {
         this.name = name;
     }
 
-    public float getxPosition() {
+    public float getXPosition() {
         return xPosition;
     }
 
-    public void setxPosition(float xPosition) {
+    public void setXPosition(float xPosition) {
         this.xPosition = xPosition;
     }
 
-    public float getyPosition() {
+    public float getYPosition() {
         return yPosition;
     }
 
-    public void setyPosition(float yPosition) {
+    public void setYPosition(float yPosition) {
         this.yPosition = yPosition;
     }
 

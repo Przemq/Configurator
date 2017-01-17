@@ -67,28 +67,29 @@ public class Controller implements Initializable {
     public ListView pointList;
 
     private List<Connection> connections;
+    private LinkedHashMap<String, Point> pointMap;
+    private LinkedList<String> clickedPoints = new LinkedList<>();
+    private GraphicsContext background;
     private int id = 0;
-    private int idName = 0;
-    private int floor = 1;
-    private int maxFloor = 0;
-    private boolean allowAddPoints = false; // w produkcji ma być false
     private String from;
     private String to;
+    private ObservableList<String> items;
+    private int floor = 1;
+    private boolean isMiddleSource = false;
+
+    private int idName = 0;
+    private int maxFloor = 0;
+    private boolean allowAddPoints = false;
     private String pointToDelete;
     private String closestPoint;
     private String pointToSave;
     private GraphicsContext gc;
-    private GraphicsContext gcBackground;
-    private ObservableList<String> items;
     private String pointToDeleteConnection;
-    private LinkedHashMap<String, Point> pointListMap;
-    private boolean isMiddleSource = false;
     private boolean canDeleteConnection = false;
     private boolean showInterFloorConnectionInfo = false;
-    private LinkedList<String> clickedPoints = new LinkedList<>();
     private HashMap<Integer, String> backgroundSourcePath;
-    private float xScale = 0.88333333333f;
-    private float yScale = 0.60443037974f;
+    private float xScale = 0.888f;
+    private float yScale = 0.612f;
     private int idToStartDecrement;
     private int totalFloorsNumber = 1;
     private String toTEST;
@@ -104,7 +105,7 @@ public class Controller implements Initializable {
         initializeTextField();
         initializeIsMiddleSourceList();
         connections = new ArrayList<>();
-        pointListMap = new LinkedHashMap<>();
+        pointMap = new LinkedHashMap<>();
         backgroundSourcePath = new HashMap<>();
         backgroundSourcePath.put(0, "");
         floorEditText.setEditable(false);
@@ -116,7 +117,7 @@ public class Controller implements Initializable {
 
         canvas.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY) {
-                drawPoint(event);
+                addPoint(event);
             }
             if (event.getButton() == MouseButton.SECONDARY) {
                 detectClickedPoint(event);
@@ -126,14 +127,13 @@ public class Controller implements Initializable {
                 detectClickedPoint(event);
                 deleteClickedPoint(closestPoint);
                 decrementID(idToStartDecrement);
-                for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
             }
         });
 
         detailsPointList.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
             @Override
             public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                for (Point p : pointListMap.values()) {
+                for (Point p : pointMap.values()) {
                     if (p.getName() == newValue) {
                         pointDetailName.setText(p.getName());
                         pointToSave = p.getName();
@@ -147,7 +147,7 @@ public class Controller implements Initializable {
 
 
         fromListAC.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            for (Point p : pointListMap.values()) {
+            for (Point p : pointMap.values()) {
                 if (p.getName().equals(newValue)) {
                     from = p.getName();
                     fromTEST = newValue.toString();
@@ -158,7 +158,7 @@ public class Controller implements Initializable {
         toListAC.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
             @Override
             public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                for (Point p : pointListMap.values()) {
+                for (Point p : pointMap.values()) {
                     if (p.getName().equals(newValue)) {
                         to = p.getName();
                         toTEST = newValue.toString();
@@ -204,7 +204,7 @@ public class Controller implements Initializable {
                 refresh();
             } else {
                 buttonFloorUP.setDisable(true);
-                showDialogMessage("There is no " + String.valueOf(maxFloor + 1) + "th floor", "Floor error", Alert.AlertType.INFORMATION);
+                showMessage("There is no " + String.valueOf(maxFloor + 1) + "th floor", "Floor error", Alert.AlertType.INFORMATION);
             }
 
 
@@ -225,7 +225,7 @@ public class Controller implements Initializable {
                     refresh();
                 } else {
                     buttonFloorDOWN.setDisable(true);
-                    showDialogMessage("There is no '0' floor ", "Floor error", Alert.AlertType.INFORMATION);
+                    showMessage("There is no '0' floor ", "Floor error", Alert.AlertType.INFORMATION);
                 }
             }
         });
@@ -233,7 +233,7 @@ public class Controller implements Initializable {
             @Override
             public void handle(ActionEvent event) {
                 deletePoint();
-                for (Point pkt : pointListMap.values()) {
+                for (Point pkt : pointMap.values()) {
                     if (pkt.getId() >= idToStartDecrement) {
                         pkt.setId(pkt.getId() - 1);
                     }
@@ -249,7 +249,7 @@ public class Controller implements Initializable {
 
         buttonEditConf.setOnAction(event -> {
             selectConfigurationFile();
-            id = pointListMap.size();
+            id = pointMap.size();
 
         });
 
@@ -258,7 +258,7 @@ public class Controller implements Initializable {
             System.out.println("deleteConection");
         });
 
-        buttonSaveImages.setOnAction(event -> sendImageOnHosting());
+        buttonSaveImages.setOnAction(event -> sendImageOnServer());
 
     }
 
@@ -266,7 +266,7 @@ public class Controller implements Initializable {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select background image");
         fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif", "*.bmp"));
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.bmp"));
 
         File selectedFile = fileChooser.showOpenDialog(new Stage());
         if (selectedFile != null) {
@@ -285,35 +285,34 @@ public class Controller implements Initializable {
     }
 
     private void setCanvasBackground(String filePath) {
-        gcBackground = backgroundCanvas.getGraphicsContext2D();
+        background = backgroundCanvas.getGraphicsContext2D();
         Image image = new Image(filePath);
-        gcBackground.drawImage(image, 0, 0, backgroundCanvas.getWidth(), backgroundCanvas.getHeight());
+        background.drawImage(image, 0, 0, backgroundCanvas.getWidth(), backgroundCanvas.getHeight());
 
     }
 
-    private void drawPoint(MouseEvent event) {
+    private void addPoint(MouseEvent event) {
         if (event.getButton() == MouseButton.PRIMARY) {
             if (allowAddPoints) {
                 Point newPoint = new Point(id, pointPrefix.getText() + idName, (float) event.getX(), (float) event.getY(), Integer.valueOf(floorEditText.getText()), false);
 
-                if (!pointListMap.isEmpty()) {
-                    for (Point p : pointListMap.values()) {
-                        if (p.getxPosition() == newPoint.getxPosition() && p.getyPosition() == newPoint.getyPosition() && p.getFloor() == newPoint.getFloor()) {
-                            showDialogMessage("Point is too close to " + p.getName() + " point", "Can not add point", Alert.AlertType.WARNING);
+                if (!pointMap.isEmpty()) {
+                    for (Point p : pointMap.values()) {
+                        if (p.getXPosition() == newPoint.getXPosition() && p.getYPosition() == newPoint.getYPosition() && p.getFloor() == newPoint.getFloor()) {
+                            showMessage("Point is too close to " + p.getName() + " point", "Can not add point", Alert.AlertType.WARNING);
                             return;
                         }
                     }
                 }
-                pointListMap.put(newPoint.getName(), newPoint);
+                pointMap.put(newPoint.getName(), newPoint);
                 refresh();
                 id++;
                 idName++;
                 System.out.println("");
-                for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
+                for (Point p : pointMap.values()) System.out.println(p.getName() + ":" + p.getId());
                 System.out.println("");
             } else
-                showDialogMessage("Add background image first!", "No background", Alert.AlertType.INFORMATION);
-
+                showMessage("Add background image first!", "No background", Alert.AlertType.INFORMATION);
         }
     }
 
@@ -342,7 +341,7 @@ public class Controller implements Initializable {
     public void savePointChanges() {
         Boolean canModify = false;
         Point tmp = null;
-        for (Point p : pointListMap.values()) {
+        for (Point p : pointMap.values()) {
             if (p.getName().equals(pointToSave)) {
                 System.out.println("Ten pkt edytuje: " + p.getName());
                 tmp = p;
@@ -351,7 +350,7 @@ public class Controller implements Initializable {
 
                     if (s.equals(pointDetailName.getText()) && !s.equals(test)) {
                         System.out.println("Znalazłem tą samą nazwę");
-                        showDialogMessage("That point arleady exist!", "Can not change name", Alert.AlertType.INFORMATION);
+                        showMessage("That point arleady exist!", "Can not change name", Alert.AlertType.INFORMATION);
                         canModify = false;
                         return;
                     } else {
@@ -363,7 +362,7 @@ public class Controller implements Initializable {
         if (canModify) {
 
 
-            pointListMap.remove(tmp.getName());
+            pointMap.remove(tmp.getName());
             for (Connection c : connections) {
                 if (c.getTo().equals(tmp.getName()))
                     c.setTo(pointDetailName.getText());
@@ -374,7 +373,7 @@ public class Controller implements Initializable {
             // decrementConnectionsID(tmp.getId()+1);
             tmp.setName(pointDetailName.getText());
             tmp.setMiddleSource(isMiddleSource);
-            pointListMap.put(tmp.getName(), tmp);
+            pointMap.put(tmp.getName(), tmp);
             refresh();
 
         }
@@ -383,28 +382,25 @@ public class Controller implements Initializable {
 
     private void addConnection() {
         if (!Objects.equals(from, to) && !from.equals(pointToDeleteConnection) && !to.equals(pointToDeleteConnection)) {
-            // System.out.println(from + ":" + to);
-
-            Connection newConnection = new Connection(pointListMap.get(from).getName(), pointListMap.get(to).getName(), pointListMap.get(from).getId(), pointListMap.get(to).getId(), calculateDistance());
-            if (pointListMap.get(from).getFloor() != pointListMap.get(to).getFloor()) {
+            Connection newConnection = new Connection(pointMap.get(from).getName(), pointMap.get(to).getName(), pointMap.get(from).getId(), pointMap.get(to).getId(), calculateDistance());
+            if (pointMap.get(from).getFloor() != pointMap.get(to).getFloor()) {
                 showInterFloorConnectionInfo = true;
             } else {
                 showInterFloorConnectionInfo = false;
             }
-
             if (!connections.isEmpty()) {
 
                 for (Connection c : connections) {
                     if ((Objects.equals(c.getFrom(), newConnection.getFrom()) && Objects.equals(c.getTo(), newConnection.getTo()))
                             || (Objects.equals(c.getFrom(), newConnection.getTo()) && Objects.equals(c.getTo(), newConnection.getFrom()))) {
                         refresh();
-                        showDialogMessage("That connection already exist!", "Info", Alert.AlertType.INFORMATION);
+                        showMessage("That connection already exist!", "Duplicate connection", Alert.AlertType.INFORMATION);
                         return;
                     }
                 }
                 connections.add(newConnection);
                 if (showInterFloorConnectionInfo) {
-                    showDialogMessage("Connection between points on different floors added", "Connection successfully added", Alert.AlertType.INFORMATION);
+                    showMessage("Connection between points on different floors added", "Connection successfully added", Alert.AlertType.INFORMATION);
                 }
                 distanceText.setText(String.valueOf(calculateDistance()));
                 refresh();
@@ -412,14 +408,14 @@ public class Controller implements Initializable {
             } else {
                 connections.add(newConnection);
                 if (showInterFloorConnectionInfo) {
-                    showDialogMessage("Connection between points on different floors added", "Connection successfully added", Alert.AlertType.INFORMATION);
+                    showMessage("Connection between points on different floors added", "Connection successfully added", Alert.AlertType.INFORMATION);
                 }
                 distanceText.setText(String.valueOf(calculateDistance()));
                 refresh();
             }
         } else {
-            if (pointListMap.size() > 1)
-                showDialogMessage("Source and destination cant't be the same points", "Warning", Alert.AlertType.WARNING);
+            if (pointMap.size() > 1)
+                showMessage("Source and destination cant't be the same points", "Warning", Alert.AlertType.WARNING);
         }
     }
 
@@ -428,22 +424,19 @@ public class Controller implements Initializable {
         gc.setStroke(Color.BLACK);
         gc.setFill(Color.BLACK);
         for (Connection cc : connections) {
-            if (pointListMap.get(cc.getFrom()).getFloor() == floor && pointListMap.get(cc.getTo()).getFloor() == floor) {
+            if (pointMap.get(cc.getFrom()).getFloor() == floor && pointMap.get(cc.getTo()).getFloor() == floor) {
                 gc.strokeLine(
-                        pointListMap.get(cc.getFrom()).getxPosition(),
-                        pointListMap.get(cc.getFrom()).getyPosition(),
-                        pointListMap.get(cc.getTo()).getxPosition(),
-                        pointListMap.get(cc.getTo()).getyPosition());
+                        pointMap.get(cc.getFrom()).getXPosition(),
+                        pointMap.get(cc.getFrom()).getYPosition(),
+                        pointMap.get(cc.getTo()).getXPosition(),
+                        pointMap.get(cc.getTo()).getYPosition());
                 gc.setFill(Color.GREY);
-                gc.fillText(String.valueOf(cc.getDistance()), (pointListMap.get(cc.getFrom()).getxPosition() + pointListMap.get(cc.getTo()).getxPosition()) / 2
-                        , (pointListMap.get(cc.getFrom()).getyPosition() + pointListMap.get(cc.getTo()).getyPosition()) / 2 - Y_CORRECTION_FOR_DISTANCE_TEXT);
+                gc.fillText(String.valueOf(cc.getDistance()), (pointMap.get(cc.getFrom()).getXPosition() + pointMap.get(cc.getTo()).getXPosition()) / 2
+                        , (pointMap.get(cc.getFrom()).getYPosition() + pointMap.get(cc.getTo()).getYPosition()) / 2 - Y_CORRECTION_FOR_DISTANCE_TEXT);
                 gc.setFill(Color.BLACK);
             }
         }
-        for (Connection c : connections) System.out.println(c.getFrom() + " : " + c.getTo());
-
-
-        for (Point p : pointListMap.values()) {
+        for (Point p : pointMap.values()) {
             if (p.getFloor() == floor) {
                 if (p.isMiddleSource()) {
                     gc.setStroke(Color.YELLOWGREEN);
@@ -455,25 +448,25 @@ public class Controller implements Initializable {
                 if (clickedPoints.size() != 0) {
                     if (p.getName().equals(clickedPoints.get(0)) || p.getName().equals(from)) {
                         gc.setFill(Color.GREEN);
-                        gc.fillOval(p.getxPosition() - Point.POINT_WIDTH / 2, p.getyPosition() - Point.POINT_HEIGHT / 2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
+                        gc.fillOval(p.getXPosition() - Point.POINT_WIDTH / 2, p.getYPosition() - Point.POINT_HEIGHT / 2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
                     }
                 }
                 if (clickedPoints.size() > 1) {
                     if (p.getName().equals(clickedPoints.get(1)) || p.getName().equals(to)) {
                         gc.setFill(Color.RED);
-                        gc.fillOval(p.getxPosition() - Point.POINT_WIDTH / 2, p.getyPosition() - Point.POINT_HEIGHT / 2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
+                        gc.fillOval(p.getXPosition() - Point.POINT_WIDTH / 2, p.getYPosition() - Point.POINT_HEIGHT / 2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
                     }
                 }
 
-                gc.fillText(p.getName(), p.getxPosition() + 8, p.getyPosition() + 5);
-                gc.strokeOval(p.getxPosition() - Point.POINT_WIDTH / 2, p.getyPosition() - Point.POINT_HEIGHT / 2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
+                gc.fillText(p.getName(), p.getXPosition() + 8, p.getYPosition() + 5);
+                gc.strokeOval(p.getXPosition() - Point.POINT_WIDTH / 2, p.getYPosition() - Point.POINT_HEIGHT / 2, Point.POINT_HEIGHT, Point.POINT_WIDTH);
             }
         }
-        items = FXCollections.observableArrayList(pointListMap.keySet());
+        items = FXCollections.observableArrayList(pointMap.keySet());
         fillListViews(items);
     }
 
-    private void showDialogMessage(String message, String headerText, Alert.AlertType alertType) {
+    private void showMessage(String message, String headerText, Alert.AlertType alertType) {
         Alert alert = new Alert(alertType);
         alert.setTitle(alertType.toString());
         alert.setContentText(message);
@@ -482,10 +475,10 @@ public class Controller implements Initializable {
     }
 
     private void deletePoint() {
-        for (Point p : pointListMap.values()) {
+        for (Point p : pointMap.values()) {
             if (p.getName().equals(pointToDelete)) {
                 idToStartDecrement = p.getId() + 1;
-                pointListMap.remove(pointToDelete);
+                pointMap.remove(pointToDelete);
                 decrementID(idToStartDecrement);
                 //decrementConnectionsID(idToStartDecrement);
                 pointToDeleteConnection = p.getName();
@@ -498,10 +491,10 @@ public class Controller implements Initializable {
 
     private int calculateDistance() {
         double x1, x2, y1, y2;
-        x1 = pointListMap.get(from).getxPosition();
-        y1 = pointListMap.get(from).getyPosition();
-        x2 = pointListMap.get(to).getxPosition();
-        y2 = pointListMap.get(to).getyPosition();
+        x1 = pointMap.get(from).getXPosition();
+        y1 = pointMap.get(from).getYPosition();
+        x2 = pointMap.get(to).getXPosition();
+        y2 = pointMap.get(to).getYPosition();
 
         double distance = Math.hypot(x1 - x2, y1 - y2);
         return (int) distance;
@@ -513,13 +506,12 @@ public class Controller implements Initializable {
             Connection con = it.next();
             if (con.getTo().equals(pointToDeleteConnection) || con.getFrom().equals(pointToDeleteConnection)) {
                 it.remove();
-                System.out.println("usuwam połączenia po usunięciu punktu");
             }
         }
 
     }
 
-    public void deleteConnection() {
+    private void deleteConnection() {
         for (Iterator<Connection> it = connections.iterator(); it.hasNext(); ) {
             Connection con = it.next();
             if ((con.getTo().equals(fromTEST) && con.getFrom().equals(toTEST)
@@ -536,7 +528,7 @@ public class Controller implements Initializable {
 
         }
         if (!canDeleteConnection) {
-            showDialogMessage("That connection does not exist", "Connection not found", Alert.AlertType.WARNING);
+            showMessage("That connection does not exist", "Connection not found", Alert.AlertType.WARNING);
         }
     }
 
@@ -546,30 +538,29 @@ public class Controller implements Initializable {
         maxFloor = floor;
         pointPrefix.setText(String.valueOf((char) (64 + floor)));
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        if (gcBackground != null) gcBackground.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        if (background != null) background.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         floorEditText.setText(String.valueOf(floor));
     }
 
     private void detectClickedPoint(MouseEvent event) {
         Point closestPoint = null;
         double distance = canvas.getWidth() * canvas.getHeight();
-        for (Point point : pointListMap.values()) {
-            float tempDistance = (float) Math.hypot(event.getX() - point.getxPosition(), event.getY() - point.getyPosition());
+        for (Point point : pointMap.values()) {
+            float tempDistance = (float) Math.hypot(event.getX() - point.getXPosition(), event.getY() - point.getYPosition());
             if ((tempDistance < distance && point.getFloor() == floor)) {
                 closestPoint = point;
                 distance = tempDistance;
             }
         }
-
         if (closestPoint != null) {
             this.closestPoint = closestPoint.getName();
         }
     }
 
     private void deleteClickedPoint(String pointName) {
-        for (Point p : pointListMap.values()) {
+        for (Point p : pointMap.values()) {
             if (p.getName().equals(pointName)) {
-                pointListMap.remove(pointName);
+                pointMap.remove(pointName);
                 pointToDeleteConnection = p.getName();
                 idToStartDecrement = p.getId() + 1;
                 deleteConnectionsAfterDeletePoint();
@@ -591,7 +582,6 @@ public class Controller implements Initializable {
             refresh();
         }
         if (clickedPoints.size() > 1) {
-            //System.out.println(clickedPoints.get(0) + " : " + clickedPoints.get(1));
             to = clickedPoints.get(1);
             from = clickedPoints.get(0);
             addConnection();
@@ -609,8 +599,8 @@ public class Controller implements Initializable {
 
                 point.put("id", p.getId());
                 point.put("name", p.getName());
-                point.put("xPosition", p.getxPosition() / xScale);
-                point.put("yPosition", p.getyPosition() / yScale);
+                point.put("xPosition", p.getXPosition() / xScale);
+                point.put("yPosition", p.getYPosition() / yScale);
                 point.put("floor", p.getFloor());
                 point.put("isMiddleSource", p.isMiddleSource());
                 pointsArray.put(point);
@@ -637,7 +627,6 @@ public class Controller implements Initializable {
                         floors.put(new File(backgroundSourcePath.get(floor)).getName());
                     }
             }
-
             JSONObject metaData = new JSONObject();
             metaData.put("idName", idName);
             metaData.put("numberOfFloor", totalFloorsNumber);
@@ -648,26 +637,26 @@ public class Controller implements Initializable {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
         return data.toString();
     }
 
     private void decrementID(int idToStart) {
-        for (Point pkt : pointListMap.values()) {
+        for (Point pkt : pointMap.values()) {
             if (pkt.getId() >= idToStart) {
                 pkt.setId(pkt.getId() - 1);
             }
         }
         id--;
         System.out.println("");
-        for (Point p : pointListMap.values()) System.out.println(p.getName() + ":" + p.getId());
+        for (Point p : pointMap.values()) System.out.println(p.getName() + ":" + p.getId());
         System.out.println("");
 
     }
 
     private void parseConfigurationFIle(String json) {
-        pointListMap.clear();
+        pointMap.clear();
         connections.clear();
+        allowAddPoints = true;
         try {
             System.out.println(json);
             JSONObject receivedData = new JSONObject(json);
@@ -693,8 +682,8 @@ public class Controller implements Initializable {
                 int floor = p.getInt("floor");
                 boolean isMiddleSource = p.getBoolean("isMiddleSource");
                 Point tmpPoint = new Point(id, name, xPosition * xScale, yPosition * yScale, floor, isMiddleSource);
-                pointListMap.put(tmpPoint.getName(), tmpPoint);
-                System.out.println("id: " + id + "  name: " + name + "  x: " + xPosition + "  y: " + yPosition + "  floor: " + floor + "  isMiddleSource: " + isMiddleSource);
+                pointMap.put(tmpPoint.getName(), tmpPoint);
+                System.out.println("idPoint: " + id + "  name: " + name + "  x: " + xPosition + "  y: " + yPosition + "  floor: " + floor + "  isMiddleSource: " + isMiddleSource);
             }
             for (int i = 0; i < connectionsArray.length(); i++) {
                 JSONObject c = connectionsArray.getJSONObject(i);
@@ -736,35 +725,32 @@ public class Controller implements Initializable {
 
         File selectedFile = fileChooser.showSaveDialog(new Stage());
         if (selectedFile != null) {
-            saveFile(createJSONObjectToSave(pointListMap, connections), selectedFile);
-            sendDataOnHosting(createJSONObjectToSave(pointListMap, connections));
-            showDialogMessage("File saved", "Success", Alert.AlertType.INFORMATION);
+            saveFile(createJSONObjectToSave(pointMap, connections), selectedFile);
+            sendDataOnHosting(createJSONObjectToSave(pointMap, connections));
+            showMessage("File saved", "Success", Alert.AlertType.INFORMATION);
         }
     }
 
     private void checkIfAddedConnectionBetweenFloors() {
-        boolean canSave = false;
+        int addedConnecionsBetweenFloors = 0;
         for (Connection c : connections) {
-            if ((pointListMap.get(c.getFrom()).getFloor() != pointListMap.get(c.getTo()).getFloor())) {
-                canSave = true;
-                break;
-            } else {
-                canSave = false;
+            if ((pointMap.get(c.getFrom()).getFloor() != pointMap.get(c.getTo()).getFloor())) {
+                addedConnecionsBetweenFloors ++;
             }
         }
-        if (canSave || totalFloorsNumber == 1) {
+        if (addedConnecionsBetweenFloors >= totalFloorsNumber -1 || totalFloorsNumber == 1) {
             saveFileDialog();
         } else {
-            showDialogMessage("You should add connection between floor", "No connection between floors", Alert.AlertType.INFORMATION);
-
+            showMessage("You should add connection between floors", "No connection between all floors", Alert.AlertType.INFORMATION);
+            System.out.println(addedConnecionsBetweenFloors);
         }
 
     }
 
     private void refreshConnectionsID() {
         for (Connection c : connections) {
-            c.setSource(pointListMap.get(c.getFrom()).getId());
-            c.setDestination(pointListMap.get(c.getTo()).getId());
+            c.setSource(pointMap.get(c.getFrom()).getId());
+            c.setDestination(pointMap.get(c.getTo()).getId());
         }
     }
 
@@ -772,10 +758,10 @@ public class Controller implements Initializable {
         new ServerRequest(ServiceType.SET_CONFIGURATION, new Parameters().addParam("dane", dataToSend)).start();
     }
 
-    private void sendImageOnHosting() {
+    private void sendImageOnServer() {
         String uri;
         if (backgroundSourcePath.size() < 2) {
-            showDialogMessage("No file to upload", "No file selected", Alert.AlertType.INFORMATION);
+            showMessage("No file to upload", "No file selected", Alert.AlertType.INFORMATION);
             return;
         }
         for (String s : backgroundSourcePath.values()) {
@@ -791,13 +777,13 @@ public class Controller implements Initializable {
 
             }
         }
-        showDialogMessage("Files successfully uploaded to server", "Upload successful", Alert.AlertType.INFORMATION);
+        showMessage("Files successfully uploaded to server", "Upload successful", Alert.AlertType.INFORMATION);
     }
 
     private void setOnStartBackground(){
-        gcBackground = backgroundCanvas.getGraphicsContext2D();
+        background = backgroundCanvas.getGraphicsContext2D();
         Image img = new Image("file:/C:/Users/PrzemekMadzia/Desktop/Grafiki%20inżynierka/logo.png");
-        gcBackground.drawImage(img, 0, backgroundCanvas.getHeight()/3.5, backgroundCanvas.getWidth(), backgroundCanvas.getHeight()/2.7);
+        background.drawImage(img, 0, backgroundCanvas.getHeight()/3.5, backgroundCanvas.getWidth(), backgroundCanvas.getHeight()/2.7);
     }
 
     private void fillUILists(){
@@ -812,7 +798,7 @@ public class Controller implements Initializable {
         connectionsItems = FXCollections.observableArrayList(connectionsUIList);
         connectionsList.setItems(connectionsItems);
 
-        for (String p : pointListMap.keySet()){
+        for (String p : pointMap.keySet()){
             pointsUIList.add(p);
         }
 
